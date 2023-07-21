@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/joho/godotenv"
 )
 
@@ -100,6 +101,7 @@ func makeAPIRequest(address string) (*PVWattsResponse, error) {
 
 func main() {
 	app := fiber.New()
+	app.Use(logger.New())
 
 	app.Get("/render", func(c *fiber.Ctx) error {
 		address := "boulder, co" // You can change this to any desired location
@@ -108,18 +110,7 @@ func main() {
 			return c.Status(http.StatusInternalServerError).SendString("Error fetching data from the API")
 		}
 
-		// Render the received data on the webpage
-		renderedData := fmt.Sprintf("Input Parameters:<br>")
-		for key, value := range pvWattsResponse.Inputs {
-			renderedData += fmt.Sprintf("%s: %v<br>", key, value)
-		}
-
-		renderedData += "<br>Output Parameters:<br>"
-		for key, value := range pvWattsResponse.Outputs {
-			renderedData += fmt.Sprintf("%s: %v<br>", key, value)
-		}
-
-		return c.SendString(renderedData)
+		return c.JSON(pvWattsResponse)
 	})
 
 	app.Listen(":3000")
