@@ -1,6 +1,10 @@
 package main
 
 import (
+	"database/sql"
+	"log"
+
+	"github.com/Ed-cred/SolarPal/database"
 	"github.com/Ed-cred/SolarPal/internal/handlers"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -20,10 +24,31 @@ func setupRoutes(app *fiber.App) {
 
 func main() {
 	app := fiber.New()
+	db, err := run()
+	if err != nil {
+		panic(err)
+	}
+	log.Println("Connected to database")
+	defer db.Close()
 	app.Use(logger.New())
-	setupRoutes(app)
+	setupRoutes(app)	
 	app.Listen(":3000")
 }
+
+
+func run () (*sql.DB, error) {
+	log.Println("Connecting to database...")
+	db, err := database.ConnectDb("./database/solar.db")
+	if err !=nil {
+		log.Fatal("Couldn't connect to database:", err)
+		return nil, err
+	}
+	return db, nil
+
+
+
+}
+
 
 // LoadEnv()
 // apiKey := GetEnv("API_KEY")
