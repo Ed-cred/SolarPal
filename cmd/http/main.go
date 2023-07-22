@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"log"
 
+	"github.com/Ed-cred/SolarPal/config"
 	"github.com/Ed-cred/SolarPal/database"
 	"github.com/Ed-cred/SolarPal/internal/handlers"
 	"github.com/gofiber/fiber/v2"
@@ -37,8 +38,10 @@ func main() {
 
 
 func run () (*sql.DB, error) {
+	config.LoadEnv()
+	dbPath := config.GetEnv("SQLITE_PATH")
 	log.Println("Connecting to database...")
-	db, err := database.ConnectDb("./database/solar.db")
+	db, err := database.ConnectDb(dbPath)
 	if err !=nil {
 		log.Fatal("Couldn't connect to database:", err)
 		return nil, err
