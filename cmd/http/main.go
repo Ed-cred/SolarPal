@@ -6,22 +6,15 @@ import (
 
 	"github.com/Ed-cred/SolarPal/config"
 	"github.com/Ed-cred/SolarPal/database"
-	"github.com/Ed-cred/SolarPal/internal/handlers"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/basicauth"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
 
-// type PVWattsResponse struct {
-// 	Inputs  map[string]interface{} `json:"inputs"`
-// 	Outputs map[string]interface{} `json:"outputs"`
-// }
-func setupRoutes(app *fiber.App) {
-	app.Get("/render", handlers.GetPowerEstimate)
-
-	app.Post("/add",func (c *fiber.Ctx) error {
-		return c.SendString("I'm a POST request for creating a new PV object to estimate")
-	})
-}
+//	type PVWattsResponse struct {
+//		Inputs  map[string]interface{} `json:"inputs"`
+//		Outputs map[string]interface{} `json:"outputs"`
+//	}
 
 func main() {
 	app := fiber.New()
@@ -32,26 +25,42 @@ func main() {
 	log.Println("Connected to database")
 	defer db.Close()
 	app.Use(logger.New())
-	setupRoutes(app)	
+	app.Use(basicauth.New(basicauth.Config{
+		Users: map[string]string{
+			"john":  "doe",
+			"admin": "123456",
+		},
+		Realm: "Forbidden",
+		Authorizer: func(user, pass string) bool {
+			if user == "john" && pass == "doe" {
+				return true
+			}
+			if user == "admin" && pass == "123456" {
+				return true
+			}
+			return false
+		},
+		Unauthorized: func(c *fiber.Ctx) error {
+			return c.SendString("Please Log In to continue")
+		},
+		ContextUsername: "_user",
+		ContextPassword: "_pass",
+	}))
+	setupRoutes(app)
 	app.Listen(":3000")
 }
 
-
-func run () (*sql.DB, error) {
+func run() (*sql.DB, error) {
 	config.LoadEnv()
 	dbPath := config.GetEnv("SQLITE_PATH")
 	log.Println("Connecting to database...")
 	db, err := database.ConnectDb(dbPath)
-	if err !=nil {
+	if err != nil {
 		log.Fatal("Couldn't connect to database:", err)
 		return nil, err
 	}
 	return db, nil
-
-
-
 }
-
 
 // LoadEnv()
 // apiKey := GetEnv("API_KEY")

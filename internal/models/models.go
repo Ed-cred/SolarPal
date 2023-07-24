@@ -20,3 +20,10 @@ type PowerEstimate struct {
 	Inputs  RequiredInputs  `json:"inputs"`
 	Outputs Outputs `json:"outputs"`
 }
+
+type User struct {
+	ID int 
+	Username string
+	Email string
+	Password string
+}
