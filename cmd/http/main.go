@@ -2,12 +2,13 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
+	"os"
 
 	"github.com/Ed-cred/SolarPal/config"
 	"github.com/Ed-cred/SolarPal/database"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/basicauth"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 )
 
@@ -25,29 +26,31 @@ func main() {
 	log.Println("Connected to database")
 	defer db.Close()
 	app.Use(logger.New())
-	app.Use(basicauth.New(basicauth.Config{
-		Users: map[string]string{
-			"john":  "doe",
-			"admin": "123456",
-		},
-		Realm: "Forbidden",
-		Authorizer: func(user, pass string) bool {
-			if user == "john" && pass == "doe" {
-				return true
-			}
-			if user == "admin" && pass == "123456" {
-				return true
-			}
-			return false
-		},
-		Unauthorized: func(c *fiber.Ctx) error {
-			return c.SendString("Please Log In to continue")
-		},
-		ContextUsername: "_user",
-		ContextPassword: "_pass",
-	}))
+	// app.Use(basicauth.New(basicauth.Config{
+	// 	Users: map[string]string{
+	// 		"john":  "doe",
+	// 		"admin": "123456",
+	// 	},
+	// 	Realm: "Forbidden",
+	// 	Authorizer: func(user, pass string) bool {
+	// 		if user == "john" && pass == "doe" {
+	// 			return true
+	// 		}
+	// 		if user == "admin" && pass == "123456" {
+	// 			return true
+	// 		}
+	// 		return false
+	// 	},
+	// 	Unauthorized: func(c *fiber.Ctx) error {
+	// 		return c.SendString("Please Log In to continue")
+	// 	},
+	// 	ContextUsername: "_user",
+	// 	ContextPassword: "_pass",
+	// }))
 	setupRoutes(app)
-	app.Listen(":3000")
+	fmt.Printf("Server started and listening at localhost:3000 - csrfActive: %v\n", len(os.Args) > 1 && os.Args[1] == "withoutCsrf")
+	// Start server
+	log.Fatal(app.Listen(":3000"))
 }
 
 func run() (*sql.DB, error) {

@@ -54,14 +54,23 @@ func MakeAPIRequest(address string) (*models.PowerEstimate, error) {
 
 	return &pvWattsResponse, nil
 }
-// GetPowerEstimate makes the API request and sens the response as JSON 
-func GetPowerEstimate (c *fiber.Ctx) error {
-	address := "boulder, co" // You can change this to any desired location
-		pvWattsResponse, err := MakeAPIRequest(address)
-		if err != nil {
-			return c.Status(http.StatusInternalServerError).SendString("Error fetching data from the API")
-		}
 
-		c.JSON(pvWattsResponse)
-		return nil
+// GetPowerEstimate makes the API request and sens the response as JSON
+func GetPowerEstimate(c *fiber.Ctx) error {
+	address := "boulder, co" // You can change this to any desired location
+	pvWattsResponse, err := MakeAPIRequest(address)
+	if err != nil {
+		return c.Status(http.StatusInternalServerError).SendString("Error fetching data from the API")
+	}
+
+	c.JSON(pvWattsResponse)
+	return nil
+}
+
+func AddSolarArray (c *fiber.Ctx) error {
+	// ctx, cancel := c.WithTimeout(c.Background(), 2*time.Second)
+	// defer cancel()
+	// stmt := `insert into room_restrictions (start_date, end_date, room_id, reservation_id, restriction_id, created_at, updated_at)
+	// 		values ($1, $2, $3, $4, $5, $6, $7)`
+	return c.SendString("Solar array has been added ")
 }
