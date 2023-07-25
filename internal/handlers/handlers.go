@@ -8,8 +8,26 @@ import (
 
 	"github.com/Ed-cred/SolarPal/config"
 	"github.com/Ed-cred/SolarPal/internal/models"
+	"github.com/Ed-cred/SolarPal/repository"
+	"github.com/Ed-cred/SolarPal/repository/database"
 	"github.com/gofiber/fiber/v2"
 )
+
+type Repository struct {
+	Cfg *config.AppConfig
+	DB  repository.DBRepo
+}
+var Repo *Repository
+func NewRepository(cfg *config.AppConfig, db *database.DB) *Repository {
+	return &Repository{
+		Cfg: cfg,
+		DB:  database.NewSQLiteRepo(db.SQL, cfg),
+	}
+}
+
+func NewHandlers(r *Repository) {
+	Repo = r
+}
 
 const baseURL = "https://developer.nrel.gov/api/pvwatts/v8.json"
 
@@ -56,7 +74,7 @@ func MakeAPIRequest(address string) (*models.PowerEstimate, error) {
 }
 
 // GetPowerEstimate makes the API request and sens the response as JSON
-func GetPowerEstimate(c *fiber.Ctx) error {
+func (r *Repository) GetPowerEstimate(c *fiber.Ctx) error {
 	address := "boulder, co" // You can change this to any desired location
 	pvWattsResponse, err := MakeAPIRequest(address)
 	if err != nil {
@@ -67,7 +85,7 @@ func GetPowerEstimate(c *fiber.Ctx) error {
 	return nil
 }
 
-func AddSolarArray (c *fiber.Ctx) error {
+func (r *Repository) AddSolarArray(c *fiber.Ctx) error {
 	// ctx, cancel := c.WithTimeout(c.Background(), 2*time.Second)
 	// defer cancel()
 	// stmt := `insert into room_restrictions (start_date, end_date, room_id, reservation_id, restriction_id, created_at, updated_at)

@@ -22,7 +22,8 @@ type PowerEstimate struct {
 }
 
 type User struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	ID       uint   `json:"id"`
+	Username string `json:"username" form:"username"`
+	Password string `json:"password" form:"password"`
 	Email    string
 }

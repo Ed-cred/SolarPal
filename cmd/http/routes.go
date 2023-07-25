@@ -7,16 +7,14 @@ import (
 	"github.com/Ed-cred/SolarPal/internal/models"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/gofiber/fiber/v2/middleware/session"
 )
 
 var (
-	sessionStore  = session.New()
+	
 	csrfActivated = true
 )
 
 func init() {
-	sessionStore.RegisterType(fiber.Map{})
 	// this mean, csrf is activated
 	csrfActivated = len(os.Args) > 1 && os.Args[1] == "withoutCsrf"
 }
@@ -89,7 +87,7 @@ func setupRoutes(app *fiber.App) {
 
 		return c.Redirect("/")
 	})
-	app.Get("/render",requireLogin, handlers.GetPowerEstimate)
+	app.Get("/render",requireLogin, handlers.Repo.GetPowerEstimate)
 
-	app.Post("/add",requireLogin, handlers.AddSolarArray)
+	app.Post("/add",requireLogin,csrfProtection, handlers.Repo.AddSolarArray)
 }

@@ -8,11 +8,16 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+type DB struct {
+	SQL *sql.DB
+}
+var dbConn = &DB{}
+
 const maxOpenConns = 10
 const maxIdleConns = 5
 const maxDBConnLifetime = 3 * time.Minute
 
-func ConnectDb(path string) (*sql.DB, error){
+func ConnectDb(path string) (*DB, error){
 	db, err := NewDB(path)
 	if err != nil {
 		log.Fatal( "Failed to open sqlite database: ", err )
@@ -21,11 +26,12 @@ func ConnectDb(path string) (*sql.DB, error){
 	db.SetMaxOpenConns(maxOpenConns)
 	db.SetMaxIdleConns(maxIdleConns)
 	db.SetConnMaxLifetime(maxDBConnLifetime)
+	dbConn.SQL = db
 	err = TestDb(db)
 	if err != nil {
 		return nil, err
 	}
-	return db, nil
+	return dbConn, nil
 }
 
 func TestDb(d *sql.DB) error {

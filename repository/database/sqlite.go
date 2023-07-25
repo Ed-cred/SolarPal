@@ -1,5 +1,9 @@
 package database
 
+import (
+	"github.com/Ed-cred/SolarPal/internal/models"
+)
+
 // func (m *SQLiteRepo) GetRequiredInputs() {
 // ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 // defer cancel()
@@ -8,3 +12,7 @@ package database
 // 			LEFT JOIN user ON solar_array.user_id = user.id`
 // 	return
 // }
+
+func CreateUser(user *models.User) {
+	
+}
