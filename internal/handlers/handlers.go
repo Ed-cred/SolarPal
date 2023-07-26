@@ -159,7 +159,7 @@ func (r *Repository) LoginUser(c *fiber.Ctx) error {
 	}
 	currSession.Set("User", fiber.Map{"Name": user.Username})
 
-	return c.Redirect("/")
+	return c.Redirect("/", fiber.StatusSeeOther)
 }
 
 func (r *Repository) AddSolarArray(c *fiber.Ctx) error {

@@ -18,8 +18,18 @@ func init() {
 func setupRoutes(app *fiber.App) {
 	
 	app.Use(recover.New())
+	app.Get("/login", func(c *fiber.Ctx) error {
+		c.SendString("Please enter your credentials")
+		return c.Redirect("/login", fiber.StatusNetworkAuthenticationRequired)
+	})
+
+	app.Post("/signup", handlers.Repo.RegisterUser)
+	app.Post("/login", handlers.Repo.LoginUser)
 
 	app.Get("/", requireLogin, csrfProtection, func(c *fiber.Ctx) error {
+		if c.Method() == "POST" {
+			c.Method("GET")
+		}
 		currSession, err := sessionStore.Get(c)
 		if err != nil {
 			return err
@@ -41,13 +51,6 @@ func setupRoutes(app *fiber.App) {
 			"csrfToken": c.Locals("token"),
 		})
 	})
-	app.Get("/login", func(c *fiber.Ctx) error {
-		c.SendString("Please enter your credentials")
-		return c.Redirect("/login", fiber.StatusNetworkAuthenticationRequired)
-	})
-
-	app.Post("/signup", handlers.Repo.RegisterUser)
-	app.Post("/login", handlers.Repo.LoginUser)
 
 	app.Get("/render", requireLogin, handlers.Repo.GetPowerEstimate)
 	app.Post("/add", requireLogin, csrfProtection, handlers.Repo.AddSolarArray)
