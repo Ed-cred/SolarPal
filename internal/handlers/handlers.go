@@ -119,7 +119,7 @@ func (r *Repository) RegisterUser(c *fiber.Ctx) error {
 		log.Println("Error creating user")
 		return err
 	}
-	return nil
+	return c.Redirect("/login")
 }
 
 func (r *Repository) LoginUser(c *fiber.Ctx) error {
