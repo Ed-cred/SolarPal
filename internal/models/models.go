@@ -25,5 +25,5 @@ type User struct {
 	ID       uint   `json:"id"`
 	Username string `json:"username" form:"username"`
 	Password string `json:"password" form:"password"`
-	Email    string
+	Email    string `json:"email" form:"email"`
 }

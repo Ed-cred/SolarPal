@@ -4,15 +4,11 @@ import (
 	"os"
 
 	"github.com/Ed-cred/SolarPal/internal/handlers"
-	"github.com/Ed-cred/SolarPal/internal/models"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
-var (
-	
-	csrfActivated = true
-)
+var csrfActivated = true
 
 func init() {
 	// this mean, csrf is activated
@@ -20,10 +16,7 @@ func init() {
 }
 
 func setupRoutes(app *fiber.App) {
-	validLogins := []models.User{
-		{Username: "bob",Email:"bob@test.com", Password: "test"},
-		{Username: "alice",Email:"alice@test.com", Password: "test"},
-	}
+	
 	app.Use(recover.New())
 
 	app.Get("/", requireLogin, csrfProtection, func(c *fiber.Ctx) error {
@@ -50,44 +43,12 @@ func setupRoutes(app *fiber.App) {
 	})
 	app.Get("/login", func(c *fiber.Ctx) error {
 		c.SendString("Please enter your credentials")
-		return c.Redirect("/login")
+		return c.Redirect("/login", fiber.StatusNetworkAuthenticationRequired)
 	})
 
-	app.Post("/login", func(c *fiber.Ctx) error {
-		user := &models.User{}
-		err := c.BodyParser(user)
-		if err != nil {
-			return err
-		}
+	app.Post("/signup", handlers.Repo.RegisterUser)
+	app.Post("/login", handlers.Repo.LoginUser)
 
-		if user.Username == "" {
-			return c.Status(fiber.StatusBadRequest).SendString("Username is required.")
-		}
-
-		if user.Password == "" {
-			return c.Status(fiber.StatusBadRequest).SendString("Password is required.")
-		}
-
-		if !findUser(validLogins, user) {
-			return c.Status(fiber.StatusBadRequest).SendString("Invalid username or password.")
-		}
-
-		// Valid login.
-		// Create a new currSession and save their user data in the currSession.
-		currSession, err := sessionStore.Get(c)
-		defer currSession.Save()
-		if err != nil {
-			return err
-		}
-		err = currSession.Regenerate()
-		if err != nil {
-			return err
-		}
-		currSession.Set("User", fiber.Map{"Name": user.Username})
-
-		return c.Redirect("/")
-	})
-	app.Get("/render",requireLogin, handlers.Repo.GetPowerEstimate)
-
-	app.Post("/add",requireLogin,csrfProtection, handlers.Repo.AddSolarArray)
+	app.Get("/render", requireLogin, handlers.Repo.GetPowerEstimate)
+	app.Post("/add", requireLogin, csrfProtection, handlers.Repo.AddSolarArray)
 }

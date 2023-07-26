@@ -3,7 +3,6 @@ package main
 import (
 	"time"
 
-	"github.com/Ed-cred/SolarPal/internal/models"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/csrf"
 	"github.com/gofiber/fiber/v2/utils"
@@ -42,11 +41,4 @@ func requireLogin(c *fiber.Ctx) error {
 }
 
 
-func findUser(list []models.User, compareUser *models.User) bool {
-	for _, item := range list {
-		if item.Username == compareUser.Username && item.Password == compareUser.Password {
-			return true
-		}
-	}
-	return false
-}
+

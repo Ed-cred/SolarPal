@@ -3,10 +3,12 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 
 	"github.com/Ed-cred/SolarPal/config"
+	"github.com/Ed-cred/SolarPal/internal/helpers"
 	"github.com/Ed-cred/SolarPal/internal/models"
 	"github.com/Ed-cred/SolarPal/repository"
 	"github.com/Ed-cred/SolarPal/repository/database"
@@ -17,7 +19,9 @@ type Repository struct {
 	Cfg *config.AppConfig
 	DB  repository.DBRepo
 }
+
 var Repo *Repository
+
 func NewRepository(cfg *config.AppConfig, db *database.DB) *Repository {
 	return &Repository{
 		Cfg: cfg,
@@ -83,6 +87,79 @@ func (r *Repository) GetPowerEstimate(c *fiber.Ctx) error {
 
 	c.JSON(pvWattsResponse)
 	return nil
+}
+
+func (r *Repository) RegisterUser(c *fiber.Ctx) error {
+	user := &models.User{}
+	validLogins, err := r.DB.GetUsers()
+	if err != nil {
+		return err
+	}
+	err = c.BodyParser(user)
+	if err != nil {
+		return err
+	}
+
+	if user.Username == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Username is required.")
+	}
+
+	if user.Password == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Password is required.")
+	}
+	if user.Email == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Email is required.")
+	}
+
+	if helpers.FindUser(validLogins, user) {
+		return c.Status(fiber.StatusBadRequest).SendString("This user is already registered.")
+	}
+	err = r.DB.CreateUser(user)
+	if err != nil {
+		log.Println("Error creating user")
+		return err
+	}
+	return nil
+}
+
+func (r *Repository) LoginUser(c *fiber.Ctx) error {
+	user := &models.User{}
+	validLogins, err := r.DB.GetUsers()
+	if err != nil {
+		log.Println("Error getting users")
+		return err
+	}
+	err = c.BodyParser(user)
+	if err != nil {
+		return err
+	}
+
+	if user.Username == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Username is required.")
+	}
+
+	if user.Password == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Password is required.")
+	}
+
+	if !helpers.FindUser(validLogins, user) {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid username or password.")
+	}
+
+	// Valid login.
+	// Create a new currSession and save their user data in the currSession.
+	currSession, err := r.Cfg.Session.Get(c)
+	defer currSession.Save()
+	if err != nil {
+		return err
+	}
+	err = currSession.Regenerate()
+	if err != nil {
+		return err
+	}
+	currSession.Set("User", fiber.Map{"Name": user.Username})
+
+	return c.Redirect("/")
 }
 
 func (r *Repository) AddSolarArray(c *fiber.Ctx) error {

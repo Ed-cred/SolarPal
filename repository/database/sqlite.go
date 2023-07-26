@@ -1,6 +1,8 @@
 package database
 
 import (
+	"log"
+
 	"github.com/Ed-cred/SolarPal/internal/models"
 )
 
@@ -13,6 +15,35 @@ import (
 // 	return
 // }
 
-func CreateUser(user *models.User) {
-	
+func (m *SQLiteRepo) CreateUser(user *models.User) error {
+	statement := `INSERT INTO user (username, password, email) VALUES (?, ?, ?)`
+	_, err := m.DB.Exec(statement, user.Username, user.Password, user.Email)
+	if err != nil {
+		log.Println("Error creating user: ", err)
+		return err
+	}
+	return nil
+
+}
+
+func (m *SQLiteRepo) GetUsers() ([]models.User, error) {
+	query := `SELECT username, password, email FROM user`
+	rows, err := m.DB.Query(query)
+	var users []models.User
+	if err != nil {
+		return users, err
+	}
+	for rows.Next() {
+		var user models.User
+		err := rows.Scan(&user.Username, &user.Password, &user.Email)
+		if err != nil {
+			return users, err
+		}
+		users = append(users, user)
+	}
+	if err := rows.Err(); err != nil {
+		return users, err
+	}
+
+	return users, nil
 }
