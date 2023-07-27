@@ -154,7 +154,7 @@ func (r *Repository) RegisterUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Email is required.")
 	}
 
-	if helpers.FindUser(validLogins, user) {
+	if helpers.FindUser(validLogins, user) != 0 {
 		return c.Status(fiber.StatusBadRequest).SendString("This user is already registered.")
 	}
 	err = r.DB.CreateUser(user)
@@ -185,9 +185,9 @@ func (r *Repository) LoginUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Password is required.")
 	}
 
-	if !helpers.FindUser(validLogins, user) {
+	if user.ID = helpers.FindUser(validLogins, user); user.ID == 0 {
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid username or password.")
-	}
+	} 
 
 	// Valid login.
 	// Create a new currSession and save their user data in the currSession.
