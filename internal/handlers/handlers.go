@@ -84,14 +84,14 @@ func MakeAPIRequest(inputs models.RequiredInputs, opts models.OptionalInputs) (*
 
 type Response struct {
 	value *models.PowerEstimate
-	error   error
+	error error
 }
 
 // GetPowerEstimate makes the API request and sens the response as JSON
 func (r *Repository) GetPowerEstimate(c *fiber.Ctx) error {
 	c.SetUserContext(r.Cfg.Ctx)
 	ctx := c.UserContext()
-	ctx, cancel := context.WithTimeout(ctx, time.Millisecond*2500)
+	ctx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
 	respch := make(chan Response)
 	inputs := models.RequiredInputs{
@@ -113,17 +113,17 @@ func (r *Repository) GetPowerEstimate(c *fiber.Ctx) error {
 		Albedo:      "0.3",
 		Bifaciality: "0.7",
 	}
-	go func () {
+	go func() {
 		pvWattsResponse, err := MakeAPIRequest(inputs, opts)
 		respch <- Response{
 			value: pvWattsResponse,
 			error: err,
 		}
 	}()
-	
+
 	for {
-		select  {
-		case <- ctx.Done():
+		select {
+		case <-ctx.Done():
 			return errors.New("fetching api data took too long")
 		case resp := <-respch:
 			c.JSON(resp.value)
@@ -154,7 +154,7 @@ func (r *Repository) RegisterUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Email is required.")
 	}
 
-	if helpers.FindUser(validLogins, user) != 0	 {
+	if helpers.FindUser(validLogins, user) != 0 {
 		return c.Status(fiber.StatusBadRequest).SendString("This user is already registered.")
 	}
 	err = r.DB.CreateUser(user)
@@ -187,7 +187,7 @@ func (r *Repository) LoginUser(c *fiber.Ctx) error {
 
 	if user.ID = helpers.FindUser(validLogins, user); user.ID == 0 {
 		return c.Status(fiber.StatusBadRequest).SendString("Invalid username or password.")
-	} 
+	}
 
 	// Valid login.
 	// Create a new currSession and save their user data in the currSession.
@@ -206,9 +206,35 @@ func (r *Repository) LoginUser(c *fiber.Ctx) error {
 }
 
 func (r *Repository) AddSolarArray(c *fiber.Ctx) error {
-	// ctx, cancel := c.WithTimeout(c.Background(), 2*time.Second)
-	// defer cancel()
-	// stmt := `insert into room_restrictions (start_date, end_date, room_id, reservation_id, restriction_id, created_at, updated_at)
-	// 		values ($1, $2, $3, $4, $5, $6, $7)`
+	currSession, err := r.Cfg.Session.Get(c)
+	if err != nil {
+		log.Println("Unable to access session storage: ", err)
+	}
+	sessionUser := currSession.Get("User").(fiber.Map)
+	id := sessionUser["ID"]
+	inputs := models.RequiredInputs{
+		Azimuth:        "180",
+		SystemCapacity: "4",
+		Losses:         "14",
+		ArrayType:      "1",
+		ModuleType:     "0",
+		Tilt:           "10",
+		Adress:         "boulder, co",
+	}
+	opts := models.OptionalInputs{
+		Gcr:         "0.4",
+		DcAcRatio:   "1.2",
+		InvEff:      "96.0",
+		Radius:      "0",
+		Dataset:     "nsrdb",
+		Soiling:     "12|4|45|23|9|99|67|12.54|54|9|0|7.6",
+		Albedo:      "0.3",
+		Bifaciality: "0.7",
+	}
+	err = r.DB.AddSolarArray(id.(uint), inputs, opts)
+	if err != nil {
+		return err
+	}
+
 	return c.SendString("Solar array has been added ")
 }

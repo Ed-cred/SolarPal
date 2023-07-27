@@ -1,7 +1,9 @@
 package database
 
 import (
+	"context"
 	"log"
+	"time"
 
 	"github.com/Ed-cred/SolarPal/internal/models"
 )
@@ -23,7 +25,6 @@ func (m *SQLiteRepo) CreateUser(user *models.User) error {
 		return err
 	}
 	return nil
-
 }
 
 func (m *SQLiteRepo) GetUsers() ([]models.User, error) {
@@ -47,8 +48,37 @@ func (m *SQLiteRepo) GetUsers() ([]models.User, error) {
 
 	return users, nil
 }
+//Returns created array id 
+func (m *SQLiteRepo) AddSolarArray(id uint, inputs models.RequiredInputs, opts models.OptionalInputs) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	statement := `INSERT INTO solar_array (azimuth, system_capacity, losses, array_type, module_type, tilt, adress, user_id, 
+		gcr, dc_ac_ratio, inv_eff, radius, dataset, soiling, albedo, bifaciality) 
+		VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+	_, err := m.DB.ExecContext(ctx, statement,
+		inputs.Azimuth,
+		inputs.SystemCapacity,
+		inputs.Losses,
+		inputs.ArrayType,
+		inputs.ModuleType,
+		inputs.Tilt,
+		inputs.Adress,
+		id,
+		opts.Gcr,
+		opts.DcAcRatio,
+		opts.InvEff,
+		opts.Radius,
+		opts.Dataset,
+		opts.Soiling,
+		opts.Albedo,
+		opts.Bifaciality,
+	)
+	if err != nil {
+		log.Println("Error inserting solar array parameters into database: ", err)
+	}
+	return nil
+}
 
-func (m *SQLiteRepo) AddSolarArray() error {
-
+func (m *SQLiteRepo) FetchSolarArrayData(userId uint) (error) {
 	return nil
 }
