@@ -154,7 +154,7 @@ func (r *Repository) RegisterUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("Email is required.")
 	}
 
-	if helpers.FindUser(validLogins, user) != 0 {
+	if helpers.FindUser(validLogins, user) != 0	 {
 		return c.Status(fiber.StatusBadRequest).SendString("This user is already registered.")
 	}
 	err = r.DB.CreateUser(user)
