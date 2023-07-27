@@ -41,13 +41,13 @@ func setupRoutes(app *fiber.App) {
 			return err
 		}
 
-		if sessionUser["Name"] == "" {
+		if sessionUser["ID"] == nil {
 			return c.Status(fiber.StatusBadRequest).SendString("User is empty")
 		}
-		username := sessionUser["Name"].(string)
+		id := sessionUser["ID"]
 
 		return c.JSON(fiber.Map{
-			"username":  username,
+			"ID":  id,
 			"csrfToken": c.Locals("token"),
 		})
 	})

@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/Ed-cred/SolarPal/config"
 	"github.com/Ed-cred/SolarPal/internal/helpers"
@@ -46,8 +49,8 @@ func MakeAPIRequest(inputs models.RequiredInputs, opts models.OptionalInputs) (*
 	queryParams.Add("array_type", inputs.ArrayType)
 	queryParams.Add("module_type", inputs.ModuleType)
 	queryParams.Add("tilt", inputs.Tilt)
-	queryParams.Add("address",inputs.Adress)
-	if (models.OptionalInputs{}) != opts{
+	queryParams.Add("address", inputs.Adress)
+	if (models.OptionalInputs{}) != opts {
 		queryParams.Add("gcr", opts.Gcr)
 		queryParams.Add("dc_ac_ratio", opts.DcAcRatio)
 		queryParams.Add("inv_eff", opts.InvEff)
@@ -56,7 +59,7 @@ func MakeAPIRequest(inputs models.RequiredInputs, opts models.OptionalInputs) (*
 		queryParams.Add("soiling", opts.Soiling)
 		queryParams.Add("albedo", opts.Albedo)
 		queryParams.Add("bifaciality", opts.Bifaciality)
-	}	
+	}
 
 	apiEndpoint := fmt.Sprintf("%s?%s", baseURL, queryParams.Encode())
 
@@ -79,34 +82,54 @@ func MakeAPIRequest(inputs models.RequiredInputs, opts models.OptionalInputs) (*
 	return &pvWattsResponse, nil
 }
 
+type Response struct {
+	value *models.PowerEstimate
+	error   error
+}
+
 // GetPowerEstimate makes the API request and sens the response as JSON
 func (r *Repository) GetPowerEstimate(c *fiber.Ctx) error {
+	c.SetUserContext(r.Cfg.Ctx)
+	ctx := c.UserContext()
+	ctx, cancel := context.WithTimeout(ctx, time.Millisecond*2500)
+	defer cancel()
+	respch := make(chan Response)
 	inputs := models.RequiredInputs{
-		Azimuth: "180",
+		Azimuth:        "180",
 		SystemCapacity: "4",
-		Losses: "14",
-		ArrayType: "1",
-		ModuleType: "0",
-		Tilt: "10",
-		Adress: "boulder, co",
+		Losses:         "14",
+		ArrayType:      "1",
+		ModuleType:     "0",
+		Tilt:           "10",
+		Adress:         "boulder, co",
 	}
 	opts := models.OptionalInputs{
-		Gcr: "0.4",
-		DcAcRatio: "1.2",
-		InvEff: "96.0",
-		Radius: "0",
-		Dataset: "nsrdb",
-		Soiling: "12|4|45|23|9|99|67|12.54|54|9|0|7.6",
-		Albedo: "0.3",
+		Gcr:         "0.4",
+		DcAcRatio:   "1.2",
+		InvEff:      "96.0",
+		Radius:      "0",
+		Dataset:     "nsrdb",
+		Soiling:     "12|4|45|23|9|99|67|12.54|54|9|0|7.6",
+		Albedo:      "0.3",
 		Bifaciality: "0.7",
 	}
-	pvWattsResponse, err := MakeAPIRequest(inputs, opts)
-	if err != nil {
-		return c.Status(http.StatusInternalServerError).SendString("Error fetching data from the API")
+	go func () {
+		pvWattsResponse, err := MakeAPIRequest(inputs, opts)
+		respch <- Response{
+			value: pvWattsResponse,
+			error: err,
+		}
+	}()
+	
+	for {
+		select  {
+		case <- ctx.Done():
+			return errors.New("fetching api data took too long")
+		case resp := <-respch:
+			c.JSON(resp.value)
+			return resp.error
+		}
 	}
-
-	c.JSON(pvWattsResponse)
-	return nil
 }
 
 func (r *Repository) RegisterUser(c *fiber.Ctx) error {
@@ -177,7 +200,7 @@ func (r *Repository) LoginUser(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	currSession.Set("User", fiber.Map{"Name": user.Username})
+	currSession.Set("User", fiber.Map{"ID": user.ID})
 
 	return c.Redirect("/", fiber.StatusSeeOther)
 }

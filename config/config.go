@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -9,6 +10,7 @@ import (
 )
 type AppConfig struct {
 	Session *session.Store
+	Ctx context.Context
 }
 
 func GetEnv(key string) string {

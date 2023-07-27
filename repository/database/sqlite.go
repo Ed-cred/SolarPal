@@ -27,7 +27,7 @@ func (m *SQLiteRepo) CreateUser(user *models.User) error {
 }
 
 func (m *SQLiteRepo) GetUsers() ([]models.User, error) {
-	query := `SELECT username, password, email FROM user`
+	query := `SELECT id, username, password, email FROM user`
 	rows, err := m.DB.Query(query)
 	var users []models.User
 	if err != nil {
@@ -35,7 +35,7 @@ func (m *SQLiteRepo) GetUsers() ([]models.User, error) {
 	}
 	for rows.Next() {
 		var user models.User
-		err := rows.Scan(&user.Username, &user.Password, &user.Email)
+		err := rows.Scan(&user.ID, &user.Username, &user.Password, &user.Email)
 		if err != nil {
 			return users, err
 		}
@@ -46,4 +46,9 @@ func (m *SQLiteRepo) GetUsers() ([]models.User, error) {
 	}
 
 	return users, nil
+}
+
+func (m *SQLiteRepo) AddSolarArray() error {
+
+	return nil
 }

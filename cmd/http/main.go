@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -37,6 +38,8 @@ func run() (*database.DB, error) {
 	sessionStore = session.New()
 	sessionStore.RegisterType(fiber.Map{})
 	cfg.Session = sessionStore
+	ctx := context.Background()
+	cfg.Ctx = ctx
 	config.LoadEnv()
 	dbPath := config.GetEnv("SQLITE_PATH")
 	log.Println("Connecting to database...")
