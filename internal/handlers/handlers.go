@@ -35,26 +35,28 @@ func NewHandlers(r *Repository) {
 
 const baseURL = "https://developer.nrel.gov/api/pvwatts/v8.json"
 
-func MakeAPIRequest(address string) (*models.PowerEstimate, error) {
+func MakeAPIRequest(inputs models.RequiredInputs, opts models.OptionalInputs) (*models.PowerEstimate, error) {
 	config.LoadEnv()
 	apiKey := config.GetEnv("API_KEY")
 	queryParams := url.Values{}
 	queryParams.Add("api_key", apiKey)
-	queryParams.Add("azimuth", "180")
-	queryParams.Add("system_capacity", "4")
-	queryParams.Add("losses", "14")
-	queryParams.Add("array_type", "1")
-	queryParams.Add("module_type", "0")
-	queryParams.Add("gcr", "0.4")
-	queryParams.Add("dc_ac_ratio", "1.2")
-	queryParams.Add("inv_eff", "96.0")
-	queryParams.Add("radius", "0")
-	queryParams.Add("dataset", "nsrdb")
-	queryParams.Add("tilt", "10")
-	queryParams.Add("address", address)
-	queryParams.Add("soiling", "12|4|45|23|9|99|67|12.54|54|9|0|7.6")
-	queryParams.Add("albedo", "0.3")
-	queryParams.Add("bifaciality", "0.7")
+	queryParams.Add("azimuth", inputs.Azimuth)
+	queryParams.Add("system_capacity", inputs.SystemCapacity)
+	queryParams.Add("losses", inputs.Losses)
+	queryParams.Add("array_type", inputs.ArrayType)
+	queryParams.Add("module_type", inputs.ModuleType)
+	queryParams.Add("tilt", inputs.Tilt)
+	queryParams.Add("address",inputs.Adress)
+	if (models.OptionalInputs{}) != opts{
+		queryParams.Add("gcr", opts.Gcr)
+		queryParams.Add("dc_ac_ratio", opts.DcAcRatio)
+		queryParams.Add("inv_eff", opts.InvEff)
+		queryParams.Add("radius", opts.Radius)
+		queryParams.Add("dataset", opts.Dataset)
+		queryParams.Add("soiling", opts.Soiling)
+		queryParams.Add("albedo", opts.Albedo)
+		queryParams.Add("bifaciality", opts.Bifaciality)
+	}	
 
 	apiEndpoint := fmt.Sprintf("%s?%s", baseURL, queryParams.Encode())
 
@@ -79,8 +81,26 @@ func MakeAPIRequest(address string) (*models.PowerEstimate, error) {
 
 // GetPowerEstimate makes the API request and sens the response as JSON
 func (r *Repository) GetPowerEstimate(c *fiber.Ctx) error {
-	address := "boulder, co" // You can change this to any desired location
-	pvWattsResponse, err := MakeAPIRequest(address)
+	inputs := models.RequiredInputs{
+		Azimuth: "180",
+		SystemCapacity: "4",
+		Losses: "14",
+		ArrayType: "1",
+		ModuleType: "0",
+		Tilt: "10",
+		Adress: "boulder, co",
+	}
+	opts := models.OptionalInputs{
+		Gcr: "0.4",
+		DcAcRatio: "1.2",
+		InvEff: "96.0",
+		Radius: "0",
+		Dataset: "nsrdb",
+		Soiling: "12|4|45|23|9|99|67|12.54|54|9|0|7.6",
+		Albedo: "0.3",
+		Bifaciality: "0.7",
+	}
+	pvWattsResponse, err := MakeAPIRequest(inputs, opts)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).SendString("Error fetching data from the API")
 	}
