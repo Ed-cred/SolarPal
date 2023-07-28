@@ -6,4 +6,5 @@ type DBRepo interface {
 	GetUsers() ([]models.User, error)
 	CreateUser(user *models.User) error
 	AddSolarArray(id uint, inputs models.RequiredInputs, opts models.OptionalInputs) error
+	FetchSolarArrayData(userId uint) ([]models.RequiredInputs, []models.OptionalInputs, error)
 }

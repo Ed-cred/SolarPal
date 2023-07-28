@@ -48,7 +48,8 @@ func (m *SQLiteRepo) GetUsers() ([]models.User, error) {
 
 	return users, nil
 }
-//Returns created array id 
+
+// Returns created array id
 func (m *SQLiteRepo) AddSolarArray(id uint, inputs models.RequiredInputs, opts models.OptionalInputs) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -79,6 +80,31 @@ func (m *SQLiteRepo) AddSolarArray(id uint, inputs models.RequiredInputs, opts m
 	return nil
 }
 
-func (m *SQLiteRepo) FetchSolarArrayData(userId uint) (error) {
-	return nil
+func (m *SQLiteRepo) FetchSolarArrayData(userId uint) ([]models.RequiredInputs, []models.OptionalInputs, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	var inputs []models.RequiredInputs
+	var opts []models.OptionalInputs
+	query := `SELECT azimuth, system_capacity, losses, array_type, module_type, tilt, adress,
+	gcr, dc_ac_ratio, inv_eff, radius, dataset, soiling, albedo, bifaciality FROM solar_array WHERE user_id = ?`
+	rows, err := m.DB.QueryContext(ctx, query, userId)
+	if err != nil {
+		log.Println("Unable to retrieve array data:", err)
+		return inputs, opts, err
+	}
+	for rows.Next() {
+		var input models.RequiredInputs
+		var opt models.OptionalInputs
+
+		err = rows.Scan(&input.Azimuth, &input.SystemCapacity, &input.Losses, &input.ArrayType, &input.ModuleType, &input.Tilt, &input.Adress, &opt.Gcr, &opt.DcAcRatio, &opt.InvEff, &opt.Radius, &opt.Dataset, &opt.Soiling, &opt.Albedo, &opt.Bifaciality)
+		if err != nil {
+			return inputs, opts, err
+		}
+		inputs = append(inputs, input)
+		opts = append(opts, opt)
+	}
+	if err := rows.Err(); err != nil {
+		return inputs, opts, err
+	}
+	return inputs, opts, nil
 }

@@ -93,28 +93,41 @@ func (r *Repository) GetPowerEstimate(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	ctx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
+	currSession, err := r.Cfg.Session.Get(c)
+	if err != nil {
+		return err
+	}
+	sessionUser := currSession.Get("User").(fiber.Map)
+	id := sessionUser["ID"]
 	respch := make(chan Response)
-	inputs := models.RequiredInputs{
-		Azimuth:        "180",
-		SystemCapacity: "4",
-		Losses:         "14",
-		ArrayType:      "1",
-		ModuleType:     "0",
-		Tilt:           "10",
-		Adress:         "boulder, co",
+	var inputs []models.RequiredInputs
+	var opts []models.OptionalInputs
+	inputs, opts, err = r.DB.FetchSolarArrayData(id.(uint))
+	if err != nil {
+		log.Println("Unable to fetch solar array data from database: ", err)
+		return err
 	}
-	opts := models.OptionalInputs{
-		Gcr:         "0.4",
-		DcAcRatio:   "1.2",
-		InvEff:      "96.0",
-		Radius:      "0",
-		Dataset:     "nsrdb",
-		Soiling:     "12|4|45|23|9|99|67|12.54|54|9|0|7.6",
-		Albedo:      "0.3",
-		Bifaciality: "0.7",
-	}
+	// inputs := models.RequiredInputs{
+	// 	Azimuth:        "180",
+	// 	SystemCapacity: "4",
+	// 	Losses:         "14",
+	// 	ArrayType:      "1",
+	// 	ModuleType:     "0",
+	// 	Tilt:           "10",
+	// 	Adress:         "boulder, co",
+	// }
+	// opts := models.OptionalInputs{
+	// 	Gcr:         "0.4",
+	// 	DcAcRatio:   "1.2",
+	// 	InvEff:      "96.0",
+	// 	Radius:      "0",
+	// 	Dataset:     "nsrdb",
+	// 	Soiling:     "12|4|45|23|9|99|67|12.54|54|9|0|7.6",
+	// 	Albedo:      "0.3",
+	// 	Bifaciality: "0.7",
+	// }
 	go func() {
-		pvWattsResponse, err := MakeAPIRequest(inputs, opts)
+		pvWattsResponse, err := MakeAPIRequest(inputs[0], opts[0])
 		respch <- Response{
 			value: pvWattsResponse,
 			error: err,
