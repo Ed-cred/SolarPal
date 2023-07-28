@@ -49,7 +49,7 @@ func MakeAPIRequest(inputs models.RequiredInputs, opts models.OptionalInputs) (*
 	queryParams.Add("array_type", inputs.ArrayType)
 	queryParams.Add("module_type", inputs.ModuleType)
 	queryParams.Add("tilt", inputs.Tilt)
-	queryParams.Add("address", inputs.Adress)
+	queryParams.Add("address", inputs.Address)
 	if (models.OptionalInputs{}) != opts {
 		queryParams.Add("gcr", opts.Gcr)
 		queryParams.Add("dc_ac_ratio", opts.DcAcRatio)
@@ -62,7 +62,7 @@ func MakeAPIRequest(inputs models.RequiredInputs, opts models.OptionalInputs) (*
 	}
 
 	apiEndpoint := fmt.Sprintf("%s?%s", baseURL, queryParams.Encode())
-
+	
 	resp, err := http.Get(apiEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make the request: %v", err)
@@ -99,39 +99,20 @@ func (r *Repository) GetPowerEstimate(c *fiber.Ctx) error {
 	}
 	sessionUser := currSession.Get("User").(fiber.Map)
 	id := sessionUser["ID"]
-	respch := make(chan Response)
 	var inputs []models.RequiredInputs
 	var opts []models.OptionalInputs
+	respch := make(chan Response)
 	inputs, opts, err = r.DB.FetchSolarArrayData(id.(uint))
 	if err != nil {
-		log.Println("Unable to fetch solar array data from database: ", err)
-		return err
+		log.Println("Unable to fetch solar array data: ", err)
 	}
-	// inputs := models.RequiredInputs{
-	// 	Azimuth:        "180",
-	// 	SystemCapacity: "4",
-	// 	Losses:         "14",
-	// 	ArrayType:      "1",
-	// 	ModuleType:     "0",
-	// 	Tilt:           "10",
-	// 	Adress:         "boulder, co",
-	// }
-	// opts := models.OptionalInputs{
-	// 	Gcr:         "0.4",
-	// 	DcAcRatio:   "1.2",
-	// 	InvEff:      "96.0",
-	// 	Radius:      "0",
-	// 	Dataset:     "nsrdb",
-	// 	Soiling:     "12|4|45|23|9|99|67|12.54|54|9|0|7.6",
-	// 	Albedo:      "0.3",
-	// 	Bifaciality: "0.7",
-	// }
 	go func() {
 		pvWattsResponse, err := MakeAPIRequest(inputs[0], opts[0])
 		respch <- Response{
 			value: pvWattsResponse,
 			error: err,
 		}
+
 	}()
 
 	for {
@@ -139,6 +120,7 @@ func (r *Repository) GetPowerEstimate(c *fiber.Ctx) error {
 		case <-ctx.Done():
 			return errors.New("fetching api data took too long")
 		case resp := <-respch:
+			defer close(respch)
 			c.JSON(resp.value)
 			return resp.error
 		}
@@ -225,29 +207,41 @@ func (r *Repository) AddSolarArray(c *fiber.Ctx) error {
 	}
 	sessionUser := currSession.Get("User").(fiber.Map)
 	id := sessionUser["ID"]
-	inputs := models.RequiredInputs{
-		Azimuth:        "180",
-		SystemCapacity: "4",
-		Losses:         "14",
-		ArrayType:      "1",
-		ModuleType:     "0",
-		Tilt:           "10",
-		Adress:         "boulder, co",
+	inputs := &models.RequiredInputs{}
+	opts := &models.OptionalInputs{}
+	err = c.BodyParser(inputs)
+	if err != nil {
+		return err
 	}
-	opts := models.OptionalInputs{
-		Gcr:         "0.4",
-		DcAcRatio:   "1.2",
-		InvEff:      "96.0",
-		Radius:      "0",
-		Dataset:     "nsrdb",
-		Soiling:     "12|4|45|23|9|99|67|12.54|54|9|0|7.6",
-		Albedo:      "0.3",
-		Bifaciality: "0.7",
+	if inputs.Azimuth == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Azimuth is required.")
 	}
-	err = r.DB.AddSolarArray(id.(uint), inputs, opts)
+	if inputs.SystemCapacity == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("System capacity is required.")
+	}
+	if inputs.Losses == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Losses are required.")
+	}
+	if inputs.ArrayType == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Array type is required.")
+	}
+	if inputs.ModuleType == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Module type is required.")
+	}
+	if inputs.Tilt == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Tilt is required.")
+	}
+	if inputs.Address == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Address is required.")
+	}
+	err = c.BodyParser(opts)
+	if err != nil {
+		return err
+	}
+	arrayId, err := r.DB.AddSolarArray(id.(uint), *inputs, *opts)
 	if err != nil {
 		return err
 	}
 
-	return c.SendString("Solar array has been added ")
+	return c.SendString("Solar array has been added with id:" + fmt.Sprint(arrayId))
 }

@@ -50,20 +50,22 @@ func (m *SQLiteRepo) GetUsers() ([]models.User, error) {
 }
 
 // Returns created array id
-func (m *SQLiteRepo) AddSolarArray(id uint, inputs models.RequiredInputs, opts models.OptionalInputs) error {
+func (m *SQLiteRepo) AddSolarArray(id uint, inputs models.RequiredInputs, opts models.OptionalInputs) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	statement := `INSERT INTO solar_array (azimuth, system_capacity, losses, array_type, module_type, tilt, adress, user_id, 
+	statement := `INSERT INTO solar_array (azimuth, system_capacity, losses, array_type, module_type, tilt, address, user_id, 
 		gcr, dc_ac_ratio, inv_eff, radius, dataset, soiling, albedo, bifaciality) 
-		VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	_, err := m.DB.ExecContext(ctx, statement,
+		VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		returning array_id`
+	var arrayId int
+	err := m.DB.QueryRowContext(ctx, statement,
 		inputs.Azimuth,
 		inputs.SystemCapacity,
 		inputs.Losses,
 		inputs.ArrayType,
 		inputs.ModuleType,
 		inputs.Tilt,
-		inputs.Adress,
+		inputs.Address,
 		id,
 		opts.Gcr,
 		opts.DcAcRatio,
@@ -73,11 +75,11 @@ func (m *SQLiteRepo) AddSolarArray(id uint, inputs models.RequiredInputs, opts m
 		opts.Soiling,
 		opts.Albedo,
 		opts.Bifaciality,
-	)
+	).Scan(&arrayId)
 	if err != nil {
 		log.Println("Error inserting solar array parameters into database: ", err)
 	}
-	return nil
+	return arrayId, nil
 }
 
 func (m *SQLiteRepo) FetchSolarArrayData(userId uint) ([]models.RequiredInputs, []models.OptionalInputs, error) {
@@ -85,7 +87,7 @@ func (m *SQLiteRepo) FetchSolarArrayData(userId uint) ([]models.RequiredInputs, 
 	defer cancel()
 	var inputs []models.RequiredInputs
 	var opts []models.OptionalInputs
-	query := `SELECT azimuth, system_capacity, losses, array_type, module_type, tilt, adress,
+	query := `SELECT azimuth, system_capacity, losses, array_type, module_type, tilt, address,
 	gcr, dc_ac_ratio, inv_eff, radius, dataset, soiling, albedo, bifaciality FROM solar_array WHERE user_id = ?`
 	rows, err := m.DB.QueryContext(ctx, query, userId)
 	if err != nil {
@@ -96,7 +98,7 @@ func (m *SQLiteRepo) FetchSolarArrayData(userId uint) ([]models.RequiredInputs, 
 		var input models.RequiredInputs
 		var opt models.OptionalInputs
 
-		err = rows.Scan(&input.Azimuth, &input.SystemCapacity, &input.Losses, &input.ArrayType, &input.ModuleType, &input.Tilt, &input.Adress, &opt.Gcr, &opt.DcAcRatio, &opt.InvEff, &opt.Radius, &opt.Dataset, &opt.Soiling, &opt.Albedo, &opt.Bifaciality)
+		err = rows.Scan(&input.Azimuth, &input.SystemCapacity, &input.Losses, &input.ArrayType, &input.ModuleType, &input.Tilt, &input.Address, &opt.Gcr, &opt.DcAcRatio, &opt.InvEff, &opt.Radius, &opt.Dataset, &opt.Soiling, &opt.Albedo, &opt.Bifaciality)
 		if err != nil {
 			return inputs, opts, err
 		}

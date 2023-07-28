@@ -8,7 +8,7 @@ type RequiredInputs struct {
 	1 - Fixed Roof Mounted; 2 - 1-Axis; 3 - 1-Axis Backtracking; 4 - 2-Axis */
 	ModuleType string `json:"module_type"` /* 0 - Standard; 1 - Premium; 2 - Thin Film*/
 	Tilt       string `json:"tilt"`        // Tilt angle (degrees)
-	Adress     string `json:"address"`     // Adress to use - required if latitude/longitude not specified
+	Address     string `json:"address"`     // Adress to use - required if latitude/longitude not specified
 }
 
 type OptionalInputs struct {
