@@ -8,15 +8,6 @@ import (
 	"github.com/Ed-cred/SolarPal/internal/models"
 )
 
-// func (m *SQLiteRepo) GetRequiredInputs() {
-// ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-// defer cancel()
-// query := `SELECT azimuth, system_capacity, losses, array_type, module_type, tilt, adress
-// 			FROM solar_array
-// 			LEFT JOIN user ON solar_array.user_id = user.id`
-// 	return
-// }
-
 func (m *SQLiteRepo) CreateUser(user *models.User) error {
 	statement := `INSERT INTO user (username, password, email) VALUES (?, ?, ?)`
 	_, err := m.DB.Exec(statement, user.Username, user.Password, user.Email)
@@ -49,7 +40,6 @@ func (m *SQLiteRepo) GetUsers() ([]models.User, error) {
 	return users, nil
 }
 
-// Returns created array id
 func (m *SQLiteRepo) AddSolarArray(id uint, inputs models.RequiredInputs, opts models.OptionalInputs) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
@@ -82,31 +72,85 @@ func (m *SQLiteRepo) AddSolarArray(id uint, inputs models.RequiredInputs, opts m
 	return arrayId, nil
 }
 
-func (m *SQLiteRepo) FetchSolarArrayData(userId uint) ([]models.RequiredInputs, []models.OptionalInputs, error) {
+func (m *SQLiteRepo) FetchSolarArrayData(userId uint, arrayId int) (models.RequiredInputs, models.OptionalInputs, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	var inputs []models.RequiredInputs
-	var opts []models.OptionalInputs
+	var inputs models.RequiredInputs
+	var opts models.OptionalInputs
 	query := `SELECT azimuth, system_capacity, losses, array_type, module_type, tilt, address,
-	gcr, dc_ac_ratio, inv_eff, radius, dataset, soiling, albedo, bifaciality FROM solar_array WHERE user_id = ?`
-	rows, err := m.DB.QueryContext(ctx, query, userId)
+	gcr, dc_ac_ratio, inv_eff, radius, dataset, soiling, albedo, bifaciality FROM solar_array WHERE user_id = ? AND array_id = ?;`
+	rows, err := m.DB.QueryContext(ctx, query, userId, arrayId)
 	if err != nil {
 		log.Println("Unable to retrieve array data:", err)
 		return inputs, opts, err
 	}
 	for rows.Next() {
-		var input models.RequiredInputs
-		var opt models.OptionalInputs
 
-		err = rows.Scan(&input.Azimuth, &input.SystemCapacity, &input.Losses, &input.ArrayType, &input.ModuleType, &input.Tilt, &input.Address, &opt.Gcr, &opt.DcAcRatio, &opt.InvEff, &opt.Radius, &opt.Dataset, &opt.Soiling, &opt.Albedo, &opt.Bifaciality)
+		err = rows.Scan(&inputs.Azimuth, &inputs.SystemCapacity, &inputs.Losses, &inputs.ArrayType, &inputs.ModuleType, &inputs.Tilt, &inputs.Address, &opts.Gcr, &opts.DcAcRatio, &opts.InvEff, &opts.Radius, &opts.Dataset, &opts.Soiling, &opts.Albedo, &opts.Bifaciality)
 		if err != nil {
-			return inputs, opts, err
+			return  inputs, opts, err
 		}
-		inputs = append(inputs, input)
-		opts = append(opts, opt)
 	}
 	if err := rows.Err(); err != nil {
 		return inputs, opts, err
 	}
 	return inputs, opts, nil
+}
+
+func (m *SQLiteRepo) FetchUserArrays(userId uint) ([]int,error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	var arrayIds []int
+	query := `SELECT array_id FROM solar_array WHERE user_id = ?`
+	rows, err := m.DB.QueryContext(ctx, query, userId)
+	if err != nil {
+		log.Println("Error fetching array Ids: ", err)
+		return arrayIds, err
+	}
+	for rows.Next() {
+		var arrayId int
+		err = rows.Scan(&arrayId)
+		if err != nil {
+			return arrayIds, err
+		}
+		arrayIds = append(arrayIds, arrayId)
+	}
+
+	return arrayIds, nil
+}
+
+
+func (m *SQLiteRepo) UpdateSolarArrayData(arrayId int, userId uint, inputs *models.RequiredInputs, opts *models.OptionalInputs) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	query := `UPDATE TABLE solar_array
+	SET azimuth = ?, system_capacity = ?, losses = ?, array_type = ?, module_type = ?, tilt = ?, address = ?, 
+	gcr = ?, dc_ac_ratio = ?, inv_eff = ?, radius = ?, dataset = ?, soiling = ?, albedo = ?, bifaciality = ?
+	WHERE array_id = ? AND user_id = ?`
+	_, err := m.DB.ExecContext(ctx, query,
+		inputs.Azimuth,
+		inputs.SystemCapacity,
+		inputs.Losses,
+		inputs.ArrayType,
+		inputs.ModuleType,
+		inputs.Tilt,
+		inputs.Address,
+		opts.Gcr,
+		opts.DcAcRatio,
+		opts.InvEff,
+		opts.Radius,
+		opts.Dataset,
+		opts.Soiling,
+		opts.Albedo,
+		opts.Bifaciality,
+		arrayId,
+		userId,
+
+	)
+	if err != nil {
+		log.Println("Error updating solar array data: ", err )
+		return err
+	}
+	log.Println("Succesfully updated solar array data!")
+	return nil
 }

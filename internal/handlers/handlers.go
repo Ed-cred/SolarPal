@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/Ed-cred/SolarPal/config"
@@ -62,7 +63,7 @@ func MakeAPIRequest(inputs models.RequiredInputs, opts models.OptionalInputs) (*
 	}
 
 	apiEndpoint := fmt.Sprintf("%s?%s", baseURL, queryParams.Encode())
-	
+
 	resp, err := http.Get(apiEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make the request: %v", err)
@@ -93,34 +94,39 @@ func (r *Repository) GetPowerEstimate(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	ctx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
+	sarrayId := c.Params("array_id")
+	arrayId, err := strconv.Atoi(sarrayId)
+	if err != nil {
+		return err
+	}
 	currSession, err := r.Cfg.Session.Get(c)
 	if err != nil {
 		return err
 	}
 	sessionUser := currSession.Get("User").(fiber.Map)
 	id := sessionUser["ID"]
-	var inputs []models.RequiredInputs
-	var opts []models.OptionalInputs
-	respch := make(chan Response)
-	inputs, opts, err = r.DB.FetchSolarArrayData(id.(uint))
+	inputs, opts, err := r.DB.FetchSolarArrayData(id.(uint), arrayId)
+	log.Println("These are the database params for my solar array:", inputs, opts)
+	respch := make(chan Response, 1)
 	if err != nil {
 		log.Println("Unable to fetch solar array data: ", err)
 	}
+	
 	go func() {
-		pvWattsResponse, err := MakeAPIRequest(inputs[0], opts[0])
+		pvWattsResponse, err := MakeAPIRequest(inputs, opts)
 		respch <- Response{
 			value: pvWattsResponse,
 			error: err,
 		}
-
+		log.Println("Solar array data for array:", arrayId)
 	}()
+	
 
 	for {
 		select {
 		case <-ctx.Done():
 			return errors.New("fetching api data took too long")
 		case resp := <-respch:
-			defer close(respch)
 			c.JSON(resp.value)
 			return resp.error
 		}
@@ -244,4 +250,84 @@ func (r *Repository) AddSolarArray(c *fiber.Ctx) error {
 	}
 
 	return c.SendString("Solar array has been added with id:" + fmt.Sprint(arrayId))
+}
+
+func (r *Repository) UpdateSolarArrayParams(c *fiber.Ctx) error {
+	currSession, err := r.Cfg.Session.Get(c)
+	if err != nil {
+		log.Println("Unable to access session storage: ", err)
+	}
+	sessionUser := currSession.Get("User").(fiber.Map)
+	id := sessionUser["ID"]
+	sarrayId := c.Params("array_id")
+	arrayId, err := strconv.Atoi(sarrayId)
+	if err != nil {
+		return err
+	}
+	existingInputs, existingOpts, err := r.DB.FetchSolarArrayData(id.(uint), arrayId)
+	if err != nil {
+		return err
+	}
+	inputs := &models.RequiredInputs{}
+	opts := &models.OptionalInputs{}
+	err = c.BodyParser(inputs)
+	if err != nil {
+		return err
+	}
+	if inputs.Azimuth == "" {
+		inputs.Azimuth = existingInputs.Azimuth
+	}
+	if inputs.SystemCapacity == "" {
+		inputs.SystemCapacity = existingInputs.SystemCapacity
+	}
+	if inputs.Losses == "" {
+		inputs.Losses = existingInputs.Losses
+	}
+	if inputs.ArrayType == "" {
+		inputs.ArrayType = existingInputs.ArrayType
+	}
+	if inputs.ModuleType == "" {
+		inputs.ModuleType = existingInputs.ModuleType
+	}
+	if inputs.Tilt == "" {
+		inputs.Tilt = existingInputs.Tilt
+	}
+	if inputs.Address == "" {
+		inputs.Address = existingInputs.Address
+	}
+	err = c.BodyParser(opts)
+	if err != nil {
+		return err
+	}
+	if opts.Gcr == "" {
+		opts.Gcr = existingOpts.Gcr
+	}
+	if opts.DcAcRatio == "" {
+		opts.DcAcRatio = existingOpts.DcAcRatio
+	}
+	if opts.InvEff == "" {
+		opts.InvEff = existingOpts.InvEff
+	}
+	if opts.Radius == "" {
+		opts.Radius = existingOpts.Radius
+	}
+	if opts.Dataset == "" {
+		opts.Dataset = existingOpts.Dataset
+	}
+	if opts.Soiling == "" {
+		opts.Soiling = existingOpts.Soiling
+	}
+	if opts.Albedo == "" {
+		opts.Albedo = existingOpts.Albedo
+	}
+	if opts.Bifaciality == "" {
+		opts.Bifaciality = existingOpts.Bifaciality
+	}
+	err = r.DB.UpdateSolarArrayData(arrayId, id.(uint), inputs, opts)
+	if err != nil {
+		log.Println("Error updating solar array parameters: ", err)
+		return err
+	}
+
+	return c.SendString("Array has been updated")
 }

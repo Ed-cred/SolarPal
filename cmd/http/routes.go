@@ -52,6 +52,7 @@ func setupRoutes(app *fiber.App) {
 		})
 	})
 
-	app.Get("/render", requireLogin, handlers.Repo.GetPowerEstimate)
+	app.Get("/render/:array_id", requireLogin, handlers.Repo.GetPowerEstimate)
 	app.Post("/add", requireLogin, handlers.Repo.AddSolarArray)
+	app.Put("/update/:array_id", requireLogin, handlers.Repo.UpdateSolarArrayParams)
 }
