@@ -123,7 +123,7 @@ func (m *SQLiteRepo) FetchUserArrays(userId uint) ([]int,error) {
 func (m *SQLiteRepo) UpdateSolarArrayData(arrayId int, userId uint, inputs *models.RequiredInputs, opts *models.OptionalInputs) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	query := `UPDATE TABLE solar_array
+	query := `UPDATE solar_array
 	SET azimuth = ?, system_capacity = ?, losses = ?, array_type = ?, module_type = ?, tilt = ?, address = ?, 
 	gcr = ?, dc_ac_ratio = ?, inv_eff = ?, radius = ?, dataset = ?, soiling = ?, albedo = ?, bifaciality = ?
 	WHERE array_id = ? AND user_id = ?`
