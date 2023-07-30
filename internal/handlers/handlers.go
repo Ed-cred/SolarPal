@@ -111,7 +111,7 @@ func (r *Repository) GetPowerEstimate(c *fiber.Ctx) error {
 	if err != nil {
 		log.Println("Unable to fetch solar array data: ", err)
 	}
-	
+
 	go func() {
 		pvWattsResponse, err := MakeAPIRequest(inputs, opts)
 		respch <- Response{
@@ -120,7 +120,6 @@ func (r *Repository) GetPowerEstimate(c *fiber.Ctx) error {
 		}
 		log.Println("Solar array data for array:", arrayId)
 	}()
-	
 
 	for {
 		select {
@@ -330,4 +329,35 @@ func (r *Repository) UpdateSolarArrayParams(c *fiber.Ctx) error {
 	}
 
 	return c.SendString("Array has been updated")
+}
+
+func (r *Repository) DisplayAvailableData(c *fiber.Ctx) error {
+	if c.Method() == "POST" {
+		c.Method("GET")
+	}
+	currSession, err := r.Cfg.Session.Get(c)
+	if err != nil {
+		return err
+	}
+	sessionUser := currSession.Get("User").(fiber.Map)
+	// release the currSession
+	err = currSession.Save()
+	if err != nil {
+		return err
+	}
+
+	if sessionUser["ID"] == nil {
+		return c.Status(fiber.StatusBadRequest).SendString("User is empty")
+	}
+	id := sessionUser["ID"]
+	arrayIds, err := r.DB.FetchUserArrays(id.(uint))
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(fiber.Map{
+		"ID":        id,
+		"Available arrays": arrayIds,
+		"csrfToken": c.Locals("token"),
+	})
 }

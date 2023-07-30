@@ -26,31 +26,7 @@ func setupRoutes(app *fiber.App) {
 	app.Post("/signup", handlers.Repo.RegisterUser)
 	app.Post("/login", handlers.Repo.LoginUser)
 
-	app.Get("/", requireLogin, csrfProtection, func(c *fiber.Ctx) error {
-		if c.Method() == "POST" {
-			c.Method("GET")
-		}
-		currSession, err := sessionStore.Get(c)
-		if err != nil {
-			return err
-		}
-		sessionUser := currSession.Get("User").(fiber.Map)
-		// release the currSession
-		err = currSession.Save()
-		if err != nil {
-			return err
-		}
-
-		if sessionUser["ID"] == nil {
-			return c.Status(fiber.StatusBadRequest).SendString("User is empty")
-		}
-		id := sessionUser["ID"]
-
-		return c.JSON(fiber.Map{
-			"ID":  id,
-			"csrfToken": c.Locals("token"),
-		})
-	})
+	app.Get("/", requireLogin, csrfProtection, handlers.Repo.DisplayAvailableData)
 
 	app.Get("/render/:array_id", requireLogin, handlers.Repo.GetPowerEstimate)
 	app.Post("/add", requireLogin, handlers.Repo.AddSolarArray)
