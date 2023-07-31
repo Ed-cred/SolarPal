@@ -8,17 +8,19 @@ import (
 	"github.com/gofiber/fiber/v2/utils"
 )
 
+const HeaderName = "X-Csrf-Token"
 var csrfProtection = csrf.New(csrf.Config{
 	// only to control the switch whether csrf is activated or not
 	Next: func(c *fiber.Ctx) bool {
 		return csrfActivated
 	},
-	KeyLookup:      "form:_csrf",
+	KeyLookup:      "header:" + HeaderName,
 	CookieName:     "csrf_",
-	CookieSameSite: "Strict",
-	Expiration:     1 * time.Hour,
+	CookieSameSite: "Lax",
+	Expiration:     6 * time.Hour,
 	KeyGenerator:   utils.UUID,
 	ContextKey:     "token",
+	Extractor: csrf.CsrfFromHeader(HeaderName),
 })
 
 func requireLogin(c *fiber.Ctx) error {

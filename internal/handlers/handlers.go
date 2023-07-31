@@ -37,7 +37,10 @@ func NewHandlers(r *Repository) {
 	Repo = r
 }
 
-const baseURL = "https://developer.nrel.gov/api/pvwatts/v8.json"
+const (
+	baseURL    = "https://developer.nrel.gov/api/pvwatts/v8.json"
+	HeaderName = "X-Csrf-Token"
+)
 
 func MakeAPIRequest(inputs models.RequiredInputs, opts models.OptionalInputs) (*models.PowerEstimate, error) {
 	config.LoadEnv()

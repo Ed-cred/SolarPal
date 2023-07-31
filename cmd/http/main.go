@@ -29,7 +29,7 @@ func main() {
 	defer db.SQL.Close()
 	app.Use(logger.New())
 	setupRoutes(app)
-	fmt.Printf("Server started and listening at localhost:3000 - csrfActive: %v\n", len(os.Args) > 1 && os.Args[1] == "withoutCsrf")
+	fmt.Printf("Server started and listening at localhost:3000 - csrfActive: %v\n", len(os.Args) > 4 && os.Args[4] == "withoutCsrf")
 	// Start server
 	log.Fatal(app.Listen(":3000"))
 }

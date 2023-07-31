@@ -12,11 +12,12 @@ var csrfActivated = true
 
 func init() {
 	// this mean, csrf is activated
-	csrfActivated = len(os.Args) > 1 && os.Args[1] == "withoutCsrf"
+	csrfActivated = len(os.Args) > 4 && os.Args[4] == "withoutCsrf"
 }
 
 func setupRoutes(app *fiber.App) {
 	app.Use(recover.New())
+
 	app.Get("/login", func(c *fiber.Ctx) error {
 		c.SendString("Please enter your credentials")
 		return c.Redirect("/login", fiber.StatusNetworkAuthenticationRequired)
