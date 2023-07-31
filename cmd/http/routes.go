@@ -16,7 +16,6 @@ func init() {
 }
 
 func setupRoutes(app *fiber.App) {
-	
 	app.Use(recover.New())
 	app.Get("/login", func(c *fiber.Ctx) error {
 		c.SendString("Please enter your credentials")
@@ -29,6 +28,7 @@ func setupRoutes(app *fiber.App) {
 	app.Get("/", requireLogin, csrfProtection, handlers.Repo.DisplayAvailableData)
 
 	app.Get("/render/:array_id", requireLogin, handlers.Repo.GetPowerEstimate)
-	app.Post("/add", requireLogin, handlers.Repo.AddSolarArray)
+	app.Post("/add", requireLogin, csrfProtection, handlers.Repo.AddSolarArray)
 	app.Put("/update/:array_id", requireLogin, handlers.Repo.UpdateSolarArrayParams)
+	app.Delete("/remove/:array_id", requireLogin, handlers.Repo.RemoveSolarArray)
 }

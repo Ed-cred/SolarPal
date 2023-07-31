@@ -356,8 +356,27 @@ func (r *Repository) DisplayAvailableData(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"ID":        id,
+		"ID":               id,
 		"Available arrays": arrayIds,
-		"csrfToken": c.Locals("token"),
+		"csrfToken":        c.Locals("token"),
 	})
+}
+
+func (r *Repository) RemoveSolarArray(c *fiber.Ctx) error {
+	currSession, err := r.Cfg.Session.Get(c)
+	if err != nil {
+		log.Println("Unable to access session storage: ", err)
+	}
+	sessionUser := currSession.Get("User").(fiber.Map)
+	id := sessionUser["ID"]
+	sarrayId := c.Params("array_id")
+	arrayId, err := strconv.Atoi(sarrayId)
+	if err != nil {
+		return err
+	}
+	err = r.DB.RemoveSolarArrayData(id.(uint), arrayId)
+	if err != nil {
+		return err
+	}
+	return c.SendString("Successfully removed solar array")
 }

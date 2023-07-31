@@ -98,7 +98,7 @@ func (m *SQLiteRepo) FetchSolarArrayData(userId uint, arrayId int) (models.Requi
 }
 
 func (m *SQLiteRepo) FetchUserArrays(userId uint) ([]int,error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 	var arrayIds []int
 	query := `SELECT array_id FROM solar_array WHERE user_id = ?`
@@ -121,7 +121,7 @@ func (m *SQLiteRepo) FetchUserArrays(userId uint) ([]int,error) {
 
 
 func (m *SQLiteRepo) UpdateSolarArrayData(arrayId int, userId uint, inputs *models.RequiredInputs, opts *models.OptionalInputs) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 	query := `UPDATE solar_array
 	SET azimuth = ?, system_capacity = ?, losses = ?, array_type = ?, module_type = ?, tilt = ?, address = ?, 
@@ -152,5 +152,17 @@ func (m *SQLiteRepo) UpdateSolarArrayData(arrayId int, userId uint, inputs *mode
 		return err
 	}
 	log.Println("Succesfully updated solar array data!")
+	return nil
+}
+
+func (m *SQLiteRepo) RemoveSolarArrayData(userId uint, arrayId int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	query := `DELETE FROM solar_array WHERE user_id = ? AND array_id = ?`
+	_, err := m.DB.ExecContext(ctx, query, userId, arrayId)
+	if err != nil {
+		log.Println("Error removing solar array from database: ", err)
+		return  err
+	}
 	return nil
 }
