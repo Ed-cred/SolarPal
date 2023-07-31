@@ -30,6 +30,6 @@ func setupRoutes(app *fiber.App) {
 
 	app.Get("/render/:array_id", requireLogin, handlers.Repo.GetPowerEstimate)
 	app.Post("/add", requireLogin, csrfProtection, handlers.Repo.AddSolarArray)
-	app.Put("/update/:array_id", requireLogin, handlers.Repo.UpdateSolarArrayParams)
-	app.Delete("/remove/:array_id", requireLogin, handlers.Repo.RemoveSolarArray)
+	app.Put("/update/:array_id", requireLogin, csrfProtection, handlers.Repo.UpdateSolarArrayParams)
+	app.Delete("/remove/:array_id", requireLogin, csrfProtection, handlers.Repo.RemoveSolarArray)
 }
