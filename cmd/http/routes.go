@@ -5,6 +5,7 @@ import (
 
 	"github.com/Ed-cred/SolarPal/internal/handlers"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
@@ -17,6 +18,10 @@ func init() {
 
 func setupRoutes(app *fiber.App) {
 	app.Use(recover.New())
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "http://localhost:3000, http://127.0.0.1:3000",
+		AllowHeaders:  "Origin, Content-Type, Accept",
+	}))
 
 	app.Get("/login", func(c *fiber.Ctx) error {
 		c.SendString("Please enter your credentials")
