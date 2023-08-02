@@ -24,7 +24,7 @@ var csrfProtection = csrf.New(csrf.Config{
 })
 
 func requireLogin(c *fiber.Ctx) error {
-	currSession, err := sessionStore.Get(c)
+	currSession, err := cfg.Session.Get(c)
 	if err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func requireLogin(c *fiber.Ctx) error {
 	if user == nil {
 		// This request is from a user that is not logged in.
 		// Send them to the login page.
-		return c.Redirect("/login")
+		return c.SendString("Please log in first.")
 	}
 
 	// If we got this far, the request is from a logged-in user.

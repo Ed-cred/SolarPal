@@ -18,18 +18,11 @@ func init() {
 
 func setupRoutes(app *fiber.App) {
 	app.Use(recover.New())
-	app.Use(cors.New(cors.Config{
-		AllowOrigins: "http://localhost:3000, http://127.0.0.1:3000",
-		AllowHeaders:  "Origin, Content-Type, Accept",
-	}))
-
-	app.Get("/login", func(c *fiber.Ctx) error {
-		c.SendString("Please enter your credentials")
-		return c.Redirect("/login", fiber.StatusNetworkAuthenticationRequired)
-	})
+	app.Use(cors.New())
 
 	app.Post("/signup", handlers.Repo.RegisterUser)
 	app.Post("/login", handlers.Repo.LoginUser)
+	app.Get("/logout", handlers.Repo.LogoutUser)
 
 	app.Get("/", requireLogin, csrfProtection, handlers.Repo.DisplayAvailableData)
 

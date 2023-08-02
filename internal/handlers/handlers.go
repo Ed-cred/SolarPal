@@ -19,6 +19,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
+const baseURL = "https://developer.nrel.gov/api/pvwatts/v8.json"
 type Repository struct {
 	Cfg *config.AppConfig
 	DB  repository.DBRepo
@@ -37,53 +38,44 @@ func NewHandlers(r *Repository) {
 	Repo = r
 }
 
-const (
-	baseURL    = "https://developer.nrel.gov/api/pvwatts/v8.json"
-	HeaderName = "X-Csrf-Token"
-)
-
-func MakeAPIRequest(inputs models.RequiredInputs, opts models.OptionalInputs) (*models.PowerEstimate, error) {
-	config.LoadEnv()
-	apiKey := config.GetEnv("API_KEY")
-	queryParams := url.Values{}
-	queryParams.Add("api_key", apiKey)
-	queryParams.Add("azimuth", inputs.Azimuth)
-	queryParams.Add("system_capacity", inputs.SystemCapacity)
-	queryParams.Add("losses", inputs.Losses)
-	queryParams.Add("array_type", inputs.ArrayType)
-	queryParams.Add("module_type", inputs.ModuleType)
-	queryParams.Add("tilt", inputs.Tilt)
-	queryParams.Add("address", inputs.Address)
-	if (models.OptionalInputs{}) != opts {
-		queryParams.Add("gcr", opts.Gcr)
-		queryParams.Add("dc_ac_ratio", opts.DcAcRatio)
-		queryParams.Add("inv_eff", opts.InvEff)
-		queryParams.Add("radius", opts.Radius)
-		queryParams.Add("dataset", opts.Dataset)
-		queryParams.Add("soiling", opts.Soiling)
-		queryParams.Add("albedo", opts.Albedo)
-		queryParams.Add("bifaciality", opts.Bifaciality)
-	}
-
-	apiEndpoint := fmt.Sprintf("%s?%s", baseURL, queryParams.Encode())
-
-	resp, err := http.Get(apiEndpoint)
+func (r *Repository) LoginUser(c *fiber.Ctx) error {
+	user := &models.User{}
+	validLogins, err := r.DB.GetUsers()
 	if err != nil {
-		return nil, fmt.Errorf("failed to make the request: %v", err)
+		log.Println("Error getting users")
+		return err
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API request failed with status code: %d", resp.StatusCode)
-	}
-
-	var pvWattsResponse models.PowerEstimate
-	err = json.NewDecoder(resp.Body).Decode(&pvWattsResponse)
+	err = c.BodyParser(user)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decode API response: %v", err)
+		return err
 	}
 
-	return &pvWattsResponse, nil
+	if user.Username == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Username is required.")
+	}
+
+	if user.Password == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Password is required.")
+	}
+
+	if user.ID = helpers.FindUser(validLogins, user); user.ID == 0 {
+		return c.Status(fiber.StatusBadRequest).SendString("Invalid username or password.")
+	}
+
+	// Valid login.
+	// Create a new currSession and save their user data in the currSession.
+	currSession, err := r.Cfg.Session.Get(c)
+	if err != nil {
+		return err
+	}
+	err = currSession.Regenerate()
+	if err != nil {
+		return err
+	}
+	currSession.Set("User", fiber.Map{"ID": user.ID})
+	currSession.Save()
+
+	return c.SendString("Successfully logged in")
 }
 
 type Response struct {
@@ -114,15 +106,15 @@ func (r *Repository) GetPowerEstimate(c *fiber.Ctx) error {
 	if err != nil {
 		log.Println("Unable to fetch solar array data: ", err)
 	}
-
+	
 	go func() {
-		pvWattsResponse, err := MakeAPIRequest(inputs, opts)
+		pvWattsResponse, err := makeAPIRequest(inputs, opts)
 		respch <- Response{
 			value: pvWattsResponse,
 			error: err,
 		}
 		log.Println("Solar array data for array:", arrayId)
-	}()
+		}()
 
 	for {
 		select {
@@ -165,47 +157,19 @@ func (r *Repository) RegisterUser(c *fiber.Ctx) error {
 		log.Println("Error creating user")
 		return err
 	}
-	return c.Redirect("/login")
+	return c.SendString("Account created successfully!")
 }
 
-func (r *Repository) LoginUser(c *fiber.Ctx) error {
-	user := &models.User{}
-	validLogins, err := r.DB.GetUsers()
-	if err != nil {
-		log.Println("Error getting users")
-		return err
-	}
-	err = c.BodyParser(user)
-	if err != nil {
-		return err
-	}
 
-	if user.Username == "" {
-		return c.Status(fiber.StatusBadRequest).SendString("Username is required.")
-	}
+func (r *Repository) LogoutUser(c *fiber.Ctx) error {
+    currSession, err := r.Cfg.Session.Get(c)
+    if err != nil {
+        return err
+    }
 
-	if user.Password == "" {
-		return c.Status(fiber.StatusBadRequest).SendString("Password is required.")
-	}
-
-	if user.ID = helpers.FindUser(validLogins, user); user.ID == 0 {
-		return c.Status(fiber.StatusBadRequest).SendString("Invalid username or password.")
-	}
-
-	// Valid login.
-	// Create a new currSession and save their user data in the currSession.
-	currSession, err := r.Cfg.Session.Get(c)
-	defer currSession.Save()
-	if err != nil {
-		return err
-	}
-	err = currSession.Regenerate()
-	if err != nil {
-		return err
-	}
-	currSession.Set("User", fiber.Map{"ID": user.ID})
-
-	return c.Redirect("/", fiber.StatusOK)
+    // Clear the session data.
+    currSession.Destroy()
+    return c.SendString("Logged out successfully.")
 }
 
 func (r *Repository) AddSolarArray(c *fiber.Ctx) error {
@@ -330,14 +294,11 @@ func (r *Repository) UpdateSolarArrayParams(c *fiber.Ctx) error {
 		log.Println("Error updating solar array parameters: ", err)
 		return err
 	}
-
+	
 	return c.SendString("Array has been updated")
 }
 
 func (r *Repository) DisplayAvailableData(c *fiber.Ctx) error {
-	if c.Method() == "POST" {
-		c.Method("GET")
-	}
 	currSession, err := r.Cfg.Session.Get(c)
 	if err != nil {
 		return err
@@ -357,7 +318,6 @@ func (r *Repository) DisplayAvailableData(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-
 	return c.JSON(fiber.Map{
 		"ID":               id,
 		"Available arrays": arrayIds,
@@ -382,4 +342,49 @@ func (r *Repository) RemoveSolarArray(c *fiber.Ctx) error {
 		return err
 	}
 	return c.SendString("Successfully removed solar array")
+}
+
+
+func makeAPIRequest(inputs models.RequiredInputs, opts models.OptionalInputs) (*models.PowerEstimate, error) {
+	config.LoadEnv()
+	apiKey := config.GetEnv("API_KEY")
+	queryParams := url.Values{}
+	queryParams.Add("api_key", apiKey)
+	queryParams.Add("azimuth", inputs.Azimuth)
+	queryParams.Add("system_capacity", inputs.SystemCapacity)
+	queryParams.Add("losses", inputs.Losses)
+	queryParams.Add("array_type", inputs.ArrayType)
+	queryParams.Add("module_type", inputs.ModuleType)
+	queryParams.Add("tilt", inputs.Tilt)
+	queryParams.Add("address", inputs.Address)
+	if (models.OptionalInputs{}) != opts {
+		queryParams.Add("gcr", opts.Gcr)
+		queryParams.Add("dc_ac_ratio", opts.DcAcRatio)
+		queryParams.Add("inv_eff", opts.InvEff)
+		queryParams.Add("radius", opts.Radius)
+		queryParams.Add("dataset", opts.Dataset)
+		queryParams.Add("soiling", opts.Soiling)
+		queryParams.Add("albedo", opts.Albedo)
+		queryParams.Add("bifaciality", opts.Bifaciality)
+	}
+
+	apiEndpoint := fmt.Sprintf("%s?%s", baseURL, queryParams.Encode())
+
+	resp, err := http.Get(apiEndpoint)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make the request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API request failed with status code: %d", resp.StatusCode)
+	}
+
+	var pvWattsResponse models.PowerEstimate
+	err = json.NewDecoder(resp.Body).Decode(&pvWattsResponse)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode API response: %v", err)
+	}
+
+	return &pvWattsResponse, nil
 }
