@@ -12,7 +12,6 @@ import (
 var csrfActivated = true
 
 func init() {
-	// this mean, csrf is activated
 	csrfActivated = len(os.Args) > 4 && os.Args[4] == "withoutCsrf"
 }
 

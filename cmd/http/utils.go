@@ -36,9 +36,6 @@ func requireLogin(c *fiber.Ctx) error {
 		// Send them to the login page.
 		return c.SendString("Please log in first.")
 	}
-
-	// If we got this far, the request is from a logged-in user.
-	// Continue on to other middleware or routes.
 	return c.Next()
 }
 

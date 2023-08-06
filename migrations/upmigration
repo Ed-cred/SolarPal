@@ -1,0 +1,32 @@
+-- "user" definition
+
+CREATE TABLE user (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	username TEXT NOT NULL,
+	password TEXT NOT NULL,
+	email TEXT NOT NULL);
+
+    
+-- solar_array definition
+
+CREATE TABLE solar_array (
+	array_id INTEGER PRIMARY KEY AUTOINCREMENT,
+	azimuth TEXT NOT NULL,
+	system_capacity TEXT NOT NULL,
+	losses TEXT NOT NULL,
+	array_type TEXT NOT NULL,
+	module_type TEXT NOT NULL,
+	tilt TEXT NOT NULL,
+	address TEXT NOT NULL,
+	user_id INTEGER NOT NULL,
+	gcr TEXT,
+	dc_ac_ratio TEXT,
+	inv_eff TEXT,
+	radius TEXT,
+	dataset TEXT,
+	soiling TEXT,
+	albedo TEXT,
+	bifaciality TEXT,
+	CONSTRAINT FK_solar_array_user FOREIGN KEY (user_id) REFERENCES "user"(id)
+);
+
