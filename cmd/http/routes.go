@@ -19,7 +19,6 @@ func init() {
 func setupRoutes(app *fiber.App) {
 	app.Use(recover.New())
 	app.Use(cors.New())
-
 	app.Post("/signup", handlers.Repo.RegisterUser)
 	app.Post("/login", handlers.Repo.LoginUser)
 	app.Get("/logout", handlers.Repo.LogoutUser)
