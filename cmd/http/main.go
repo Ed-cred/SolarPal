@@ -14,7 +14,6 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/session"
 )
 
-
 var (
 	sessionStore *session.Store
 	cfg          config.AppConfig
@@ -53,4 +52,3 @@ func run() (*database.DB, error) {
 	handlers.NewHandlers(repo)
 	return db, nil
 }
-
