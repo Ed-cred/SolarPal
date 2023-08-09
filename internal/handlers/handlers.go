@@ -175,7 +175,7 @@ func (r *Repository) LogoutUser(c *fiber.Ctx) error {
 func (r *Repository) AddSolarArray(c *fiber.Ctx) error {
 	currSession, err := r.Cfg.Session.Get(c)
 	if err != nil {
-		log.Println("Unable to access session storage: ", err)
+		log.Println("Unable to access session: ", err)
 	}
 	sessionUser := currSession.Get("User").(fiber.Map)
 	id := sessionUser["ID"]
