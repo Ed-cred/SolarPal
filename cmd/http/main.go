@@ -9,6 +9,9 @@ import (
 	"github.com/Ed-cred/SolarPal/config"
 	"github.com/Ed-cred/SolarPal/internal/handlers"
 	"github.com/Ed-cred/SolarPal/repository/database"
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
+	fiberadapter "github.com/awslabs/aws-lambda-go-api-proxy/fiber"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/session"
@@ -17,9 +20,10 @@ import (
 var (
 	sessionStore *session.Store
 	cfg          config.AppConfig
+	fiberLambda *fiberadapter.FiberLambda
 )
 
-func main() {
+func init() {
 	app := fiber.New()
 	db, err := run()
 	if err != nil {
@@ -30,8 +34,15 @@ func main() {
 	app.Use(logger.New())
 	setupRoutes(app)
 	fmt.Printf("Server started and listening at localhost:3000 - csrfActive: %v\n", len(os.Args) > 4 && os.Args[4] == "withoutCsrf")
-	// Start server
-	log.Fatal(app.Listen(":3000"))
+	fiberLambda = fiberadapter.New(app)
+}
+
+func main() {
+	lambda.Start(HandleRequest)
+}
+
+func HandleRequest(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	return fiberLambda.ProxyWithContext(ctx, req)
 }
 
 func run() (*database.DB, error) {
@@ -52,3 +63,18 @@ func run() (*database.DB, error) {
 	handlers.NewHandlers(repo)
 	return db, nil
 }
+
+// func handler(req events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+// 	switch req.HTTPMethod {
+// 	case "GET":
+// 		return handlers.GetUser(req, tableName, dynaClient)
+// 	case "POST":
+// 		return handlers.CreateUser(req, tableName, dynaClient)
+// 	case "PUT":
+// 		return handlers.UpdateUser(req, tableName, dynaClient)
+// 	case "DELETE":
+// 		return handlers.DeleteUser(req, tableName, dynaClient)
+// 	default:
+// 		return handlers.UnhandledMethod()
+// 	}
+// }

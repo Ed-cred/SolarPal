@@ -22,10 +22,10 @@ func setupRoutes(app *fiber.App) {
 	app.Post("/login", handlers.Repo.LoginUser)
 	app.Get("/logout", handlers.Repo.LogoutUser)
 
-	app.Get("/", requireLogin, csrfProtection, handlers.Repo.DisplayAvailableData)
+	app.Get("/",  csrfProtection, handlers.Repo.DisplayAvailableData)
 
-	app.Get("/render/:array_id", requireLogin, handlers.Repo.GetPowerEstimate)
-	app.Post("/add", requireLogin, csrfProtection, handlers.Repo.AddSolarArray)
-	app.Put("/update/:array_id", requireLogin, csrfProtection, handlers.Repo.UpdateSolarArrayParams)
-	app.Delete("/remove/:array_id", requireLogin, csrfProtection, handlers.Repo.RemoveSolarArray)
+	app.Get("/render/:array_id",  handlers.Repo.GetPowerEstimate)
+	app.Post("/add",  csrfProtection, handlers.Repo.AddSolarArray)
+	app.Put("/update/:array_id",  csrfProtection, handlers.Repo.UpdateSolarArrayParams)
+	app.Delete("/remove/:array_id",  csrfProtection, handlers.Repo.RemoveSolarArray)
 }
