@@ -115,7 +115,6 @@ func (r *Repository) GetPowerEstimate(c *fiber.Ctx) error {
 		}
 		log.Println("Solar array data for array:", arrayId)
 		}()
-	c.Response().Header.Set("Content-Type", "application/json")
 
 	for {
 		select {
@@ -319,7 +318,6 @@ func (r *Repository) DisplayAvailableData(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	c.Response().Header.Set("Content-Type", "application/json")
 	return c.JSON(fiber.Map{
 		"ID":               id,
 		"Available arrays": arrayIds,
