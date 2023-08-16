@@ -23,8 +23,6 @@ type OptionalInputs struct {
 	Bifaciality string `json:"bifaciality"` /*The ratio of rear-side efficiency to front-side efficiency.Typical range 0.65 - 0.9 provided on the bifacial module datasheeet.(default:none)*/
 	// Latitude string `json:"latitude"` // Latitude to use - required if adress not specified
 	// Longitude string `json:"longitude"` // Longitude to use - required if adress not specified
-
-
 }
 
 type Outputs struct {
