@@ -27,3 +27,5 @@ func setupRoutes(app *fiber.App) {
 	app.Put("/update/:array_id", requireLogin, csrfProtection, handlers.Repo.UpdateSolarArrayParams)
 	app.Delete("/remove/:array_id", requireLogin, csrfProtection, handlers.Repo.RemoveSolarArray)
 }
+
+
