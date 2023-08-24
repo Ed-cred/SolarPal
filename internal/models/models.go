@@ -21,8 +21,8 @@ type OptionalInputs struct {
 	Soiling string `json:"soiling"` /*Reduction in incident solar irradiance caused by dust or other seasonal soiling of the module surface .Specify a pipe-delimited array of 12 monthly values. Example: "12|4|45|23|9|99|67|12.54|54|9|0|7.6" */
 	Albedo string `json:"albedo"` /*Ground reflectance. A value of 0 would mean that the ground is completely non-reflective, and a value of 1 would mean that it is completely reflective. Specify either a pipe-delimited array of 12 monthly values or a single value to be used for all months.*/
 	Bifaciality string `json:"bifaciality"` /*The ratio of rear-side efficiency to front-side efficiency.Typical range 0.65 - 0.9 provided on the bifacial module datasheeet.(default:none)*/
-	// Latitude string `json:"latitude"` // Latitude to use - required if adress not specified
-	// Longitude string `json:"longitude"` // Longitude to use - required if adress not specified
+	Latitude string `json:"lat"` // Latitude to use - required if adress not specified
+	Longitude string `json:"lon"` // Longitude to use - required if adress not specified
 }
 
 type Outputs struct {

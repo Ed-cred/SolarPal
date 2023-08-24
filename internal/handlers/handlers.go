@@ -20,6 +20,7 @@ import (
 )
 
 const baseURL = "https://developer.nrel.gov/api/pvwatts/v8.json"
+
 type Repository struct {
 	Cfg *config.AppConfig
 	DB  repository.DBRepo
@@ -106,7 +107,7 @@ func (r *Repository) GetPowerEstimate(c *fiber.Ctx) error {
 	if err != nil {
 		log.Println("Unable to fetch solar array data: ", err)
 	}
-	
+
 	go func() {
 		pvWattsResponse, err := makeAPIRequest(inputs, opts)
 		respch <- Response{
@@ -114,7 +115,7 @@ func (r *Repository) GetPowerEstimate(c *fiber.Ctx) error {
 			error: err,
 		}
 		log.Println("Solar array data for array:", arrayId)
-		}()
+	}()
 
 	for {
 		select {
@@ -160,16 +161,15 @@ func (r *Repository) RegisterUser(c *fiber.Ctx) error {
 	return c.SendString("Account created successfully!")
 }
 
-
 func (r *Repository) LogoutUser(c *fiber.Ctx) error {
-    currSession, err := r.Cfg.Session.Get(c)
-    if err != nil {
-        return err
-    }
+	currSession, err := r.Cfg.Session.Get(c)
+	if err != nil {
+		return err
+	}
 
-    // Clear the session data.
-    currSession.Destroy()
-    return c.SendString("Logged out successfully.")
+	// Clear the session data.
+	currSession.Destroy()
+	return c.SendString("Logged out successfully.")
 }
 
 func (r *Repository) AddSolarArray(c *fiber.Ctx) error {
@@ -182,6 +182,10 @@ func (r *Repository) AddSolarArray(c *fiber.Ctx) error {
 	inputs := &models.RequiredInputs{}
 	opts := &models.OptionalInputs{}
 	err = c.BodyParser(inputs)
+	if err != nil {
+		return err
+	}
+	err = c.BodyParser(opts)
 	if err != nil {
 		return err
 	}
@@ -203,12 +207,8 @@ func (r *Repository) AddSolarArray(c *fiber.Ctx) error {
 	if inputs.Tilt == "" {
 		return c.Status(fiber.StatusBadRequest).SendString("Tilt is required.")
 	}
-	if inputs.Address == "" {
-		return c.Status(fiber.StatusBadRequest).SendString("Address is required.")
-	}
-	err = c.BodyParser(opts)
-	if err != nil {
-		return err
+	if inputs.Address == "" && opts.Latitude == "" && opts.Longitude == "" {
+		return c.Status(fiber.StatusBadRequest).SendString("Location data is required.")
 	}
 	arrayId, err := r.DB.AddSolarArray(id.(uint), *inputs, *opts)
 	if err != nil {
@@ -294,7 +294,7 @@ func (r *Repository) UpdateSolarArrayParams(c *fiber.Ctx) error {
 		log.Println("Error updating solar array parameters: ", err)
 		return err
 	}
-	
+
 	return c.SendString("Array has been updated")
 }
 
@@ -344,7 +344,6 @@ func (r *Repository) RemoveSolarArray(c *fiber.Ctx) error {
 	return c.SendString("Successfully removed solar array")
 }
 
-
 func makeAPIRequest(inputs models.RequiredInputs, opts models.OptionalInputs) (*models.PowerEstimate, error) {
 	config.LoadEnv()
 	apiKey := config.GetEnv("API_KEY")
@@ -356,7 +355,12 @@ func makeAPIRequest(inputs models.RequiredInputs, opts models.OptionalInputs) (*
 	queryParams.Add("array_type", inputs.ArrayType)
 	queryParams.Add("module_type", inputs.ModuleType)
 	queryParams.Add("tilt", inputs.Tilt)
-	queryParams.Add("address", inputs.Address)
+	if inputs.Address != "" {
+		queryParams.Add("address", inputs.Address)
+	} else {
+		queryParams.Add("lat", opts.Latitude)
+		queryParams.Add("lon", opts.Longitude)
+	}
 	if (models.OptionalInputs{}) != opts {
 		queryParams.Add("gcr", opts.Gcr)
 		queryParams.Add("dc_ac_ratio", opts.DcAcRatio)

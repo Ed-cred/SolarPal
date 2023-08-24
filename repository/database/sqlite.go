@@ -78,7 +78,7 @@ func (m *SQLiteRepo) FetchSolarArrayData(userId uint, arrayId int) (models.Requi
 	var inputs models.RequiredInputs
 	var opts models.OptionalInputs
 	query := `SELECT azimuth, system_capacity, losses, array_type, module_type, tilt, address,
-	gcr, dc_ac_ratio, inv_eff, radius, dataset, soiling, albedo, bifaciality FROM solar_array WHERE user_id = ? AND array_id = ?;`
+	gcr, dc_ac_ratio, inv_eff, radius, dataset, soiling, albedo, bifaciality, lat, lon FROM solar_array WHERE user_id = ? AND array_id = ?;`
 	rows, err := m.DB.QueryContext(ctx, query, userId, arrayId)
 	if err != nil {
 		log.Println("Unable to retrieve array data:", err)
@@ -86,7 +86,7 @@ func (m *SQLiteRepo) FetchSolarArrayData(userId uint, arrayId int) (models.Requi
 	}
 	for rows.Next() {
 
-		err = rows.Scan(&inputs.Azimuth, &inputs.SystemCapacity, &inputs.Losses, &inputs.ArrayType, &inputs.ModuleType, &inputs.Tilt, &inputs.Address, &opts.Gcr, &opts.DcAcRatio, &opts.InvEff, &opts.Radius, &opts.Dataset, &opts.Soiling, &opts.Albedo, &opts.Bifaciality)
+		err = rows.Scan(&inputs.Azimuth, &inputs.SystemCapacity, &inputs.Losses, &inputs.ArrayType, &inputs.ModuleType, &inputs.Tilt, &inputs.Address, &opts.Gcr, &opts.DcAcRatio, &opts.InvEff, &opts.Radius, &opts.Dataset, &opts.Soiling, &opts.Albedo, &opts.Bifaciality, &opts.Latitude, &opts.Longitude)
 		if err != nil {
 			return  inputs, opts, err
 		}
@@ -125,7 +125,7 @@ func (m *SQLiteRepo) UpdateSolarArrayData(arrayId int, userId uint, inputs *mode
 	defer cancel()
 	query := `UPDATE solar_array
 	SET azimuth = ?, system_capacity = ?, losses = ?, array_type = ?, module_type = ?, tilt = ?, address = ?, 
-	gcr = ?, dc_ac_ratio = ?, inv_eff = ?, radius = ?, dataset = ?, soiling = ?, albedo = ?, bifaciality = ?
+	gcr = ?, dc_ac_ratio = ?, inv_eff = ?, radius = ?, dataset = ?, soiling = ?, albedo = ?, bifaciality = ?, lat=?, lon=?
 	WHERE array_id = ? AND user_id = ?`
 	_, err := m.DB.ExecContext(ctx, query,
 		inputs.Azimuth,
@@ -143,6 +143,8 @@ func (m *SQLiteRepo) UpdateSolarArrayData(arrayId int, userId uint, inputs *mode
 		opts.Soiling,
 		opts.Albedo,
 		opts.Bifaciality,
+		opts.Latitude,
+		opts.Longitude,
 		arrayId,
 		userId,
 
