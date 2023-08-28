@@ -1,5 +1,5 @@
 build:
 	 go build -o bin/solarpal ./cmd/http/.
 
-run: build
+pancakes: build
 	bin/solarpal

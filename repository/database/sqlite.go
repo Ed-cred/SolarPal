@@ -78,7 +78,7 @@ func (m *SQLiteRepo) FetchSolarArrayData(userId uint, arrayId int) (models.Requi
 	var inputs models.RequiredInputs
 	var opts models.OptionalInputs
 	query := `SELECT azimuth, system_capacity, losses, array_type, module_type, tilt, address,
-	gcr, dc_ac_ratio, inv_eff, radius, dataset, soiling, albedo, bifaciality, lat, lon FROM solar_array WHERE user_id = ? AND array_id = ?;`
+	gcr, dc_ac_ratio, inv_eff, radius, dataset, soiling, albedo, bifaciality, coalesce(lat,'') , coalesce(lon,'') FROM solar_array WHERE user_id = ? AND array_id = ?;`
 	rows, err := m.DB.QueryContext(ctx, query, userId, arrayId)
 	if err != nil {
 		log.Println("Unable to retrieve array data:", err)
