@@ -34,7 +34,7 @@ func requireLogin(c *fiber.Ctx) error {
 	if user == nil {
 		// This request is from a user that is not logged in.
 		// Send them to the login page.
-		return c.SendString("Please log in first.")
+		return c.Status(fiber.StatusForbidden).SendString("Please log in first.")
 	}
 	return c.Next()
 }

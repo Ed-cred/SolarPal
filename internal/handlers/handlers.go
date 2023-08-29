@@ -90,8 +90,7 @@ func (r *Repository) GetPowerEstimate(c *fiber.Ctx) error {
 	ctx := c.UserContext()
 	ctx, cancel := context.WithTimeout(ctx, time.Second*3)
 	defer cancel()
-	sarrayId := c.Params("array_id")
-	arrayId, err := strconv.Atoi(sarrayId)
+	arrayId, err := strconv.Atoi(c.Params("array_id"))
 	if err != nil {
 		return err
 	}
@@ -114,7 +113,6 @@ func (r *Repository) GetPowerEstimate(c *fiber.Ctx) error {
 			value: pvWattsResponse,
 			error: err,
 		}
-		log.Println("Solar array data for array:", arrayId)
 	}()
 
 	for {
@@ -151,11 +149,10 @@ func (r *Repository) RegisterUser(c *fiber.Ctx) error {
 	}
 
 	if helpers.FindUser(validLogins, user) != 0 {
-		return c.Status(fiber.StatusBadRequest).SendString("This user is already registered.")
+		return c.Status(fiber.StatusConflict).SendString("This user is already registered.")
 	}
 	err = r.DB.CreateUser(user)
 	if err != nil {
-		log.Println("Error creating user")
 		return err
 	}
 	return c.SendString("Account created successfully!")
@@ -168,6 +165,7 @@ func (r *Repository) LogoutUser(c *fiber.Ctx) error {
 	}
 
 	// Clear the session data.
+	currSession.Delete("User")
 	currSession.Destroy()
 	dest := currSession.Destroy().Error()
 	return c.SendString("Logged out successfully.:" + dest)
@@ -226,8 +224,7 @@ func (r *Repository) UpdateSolarArrayParams(c *fiber.Ctx) error {
 	}
 	sessionUser := currSession.Get("User").(fiber.Map)
 	id := sessionUser["ID"]
-	sarrayId := c.Params("array_id")
-	arrayId, err := strconv.Atoi(sarrayId)
+	arrayId, err := strconv.Atoi(c.Params("array_id"))
 	if err != nil {
 		return err
 	}
@@ -333,8 +330,7 @@ func (r *Repository) RemoveSolarArray(c *fiber.Ctx) error {
 	}
 	sessionUser := currSession.Get("User").(fiber.Map)
 	id := sessionUser["ID"]
-	sarrayId := c.Params("array_id")
-	arrayId, err := strconv.Atoi(sarrayId)
+	arrayId, err := strconv.Atoi(c.Params("array_id"))
 	if err != nil {
 		return err
 	}
@@ -372,7 +368,6 @@ func makeAPIRequest(inputs models.RequiredInputs, opts models.OptionalInputs) (*
 		queryParams.Add("albedo", opts.Albedo)
 		queryParams.Add("bifaciality", opts.Bifaciality)
 	}
-
 	apiEndpoint := fmt.Sprintf("%s?%s", baseURL, queryParams.Encode())
 
 	resp, err := http.Get(apiEndpoint)
