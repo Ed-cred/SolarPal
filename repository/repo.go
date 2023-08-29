@@ -8,6 +8,6 @@ type DBRepo interface {
 	AddSolarArray(id uint, inputs models.RequiredInputs, opts models.OptionalInputs) (int, error)
 	FetchSolarArrayData(userId uint, arrayId int) (models.RequiredInputs, models.OptionalInputs, error)
 	UpdateSolarArrayData(arrayId int, userId uint, inputs *models.RequiredInputs, opts *models.OptionalInputs) error
-	FetchUserArrays(userId uint) ([]int,error)
+	FetchUserArrays(userId uint) ([]models.ArrayData, error)
 	RemoveSolarArrayData(userId uint, arrayId int) error
 }

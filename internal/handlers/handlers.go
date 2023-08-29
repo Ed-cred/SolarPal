@@ -169,7 +169,8 @@ func (r *Repository) LogoutUser(c *fiber.Ctx) error {
 
 	// Clear the session data.
 	currSession.Destroy()
-	return c.SendString("Logged out successfully.")
+	dest := currSession.Destroy().Error()
+	return c.SendString("Logged out successfully.:" + dest)
 }
 
 func (r *Repository) AddSolarArray(c *fiber.Ctx) error {
@@ -314,13 +315,13 @@ func (r *Repository) DisplayAvailableData(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).SendString("User is empty")
 	}
 	id := sessionUser["ID"]
-	arrayIds, err := r.DB.FetchUserArrays(id.(uint))
+	arrayData, err := r.DB.FetchUserArrays(id.(uint))
 	if err != nil {
 		return err
 	}
 	return c.JSON(fiber.Map{
 		"ID":               id,
-		"Available arrays": arrayIds,
+		"Available arrays": arrayData,
 		"csrfToken":        c.Locals("token"),
 	})
 }

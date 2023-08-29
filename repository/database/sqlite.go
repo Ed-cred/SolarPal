@@ -88,7 +88,7 @@ func (m *SQLiteRepo) FetchSolarArrayData(userId uint, arrayId int) (models.Requi
 
 		err = rows.Scan(&inputs.Azimuth, &inputs.SystemCapacity, &inputs.Losses, &inputs.ArrayType, &inputs.ModuleType, &inputs.Tilt, &inputs.Address, &opts.Gcr, &opts.DcAcRatio, &opts.InvEff, &opts.Radius, &opts.Dataset, &opts.Soiling, &opts.Albedo, &opts.Bifaciality, &opts.Latitude, &opts.Longitude)
 		if err != nil {
-			return  inputs, opts, err
+			return inputs, opts, err
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -97,28 +97,27 @@ func (m *SQLiteRepo) FetchSolarArrayData(userId uint, arrayId int) (models.Requi
 	return inputs, opts, nil
 }
 
-func (m *SQLiteRepo) FetchUserArrays(userId uint) ([]int,error) {
+func (m *SQLiteRepo) FetchUserArrays(userId uint) ([]models.ArrayData, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
-	var arrayIds []int
-	query := `SELECT array_id FROM solar_array WHERE user_id = ?`
+	var arraysData []models.ArrayData
+	query := `SELECT array_id, address, coalesce(lat, ""), coalesce(lon, "") FROM solar_array WHERE user_id = ?`
 	rows, err := m.DB.QueryContext(ctx, query, userId)
 	if err != nil {
 		log.Println("Error fetching array Ids: ", err)
-		return arrayIds, err
+		return arraysData, err
 	}
 	for rows.Next() {
-		var arrayId int
-		err = rows.Scan(&arrayId)
+		var arrayData models.ArrayData
+		err = rows.Scan(&arrayData.ID, &arrayData.Adress, &arrayData.Latitude, &arrayData.Longitude)
 		if err != nil {
-			return arrayIds, err
+			return arraysData, err
 		}
-		arrayIds = append(arrayIds, arrayId)
+		arraysData = append(arraysData, arrayData)
 	}
 
-	return arrayIds, nil
+	return arraysData, nil
 }
-
 
 func (m *SQLiteRepo) UpdateSolarArrayData(arrayId int, userId uint, inputs *models.RequiredInputs, opts *models.OptionalInputs) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
@@ -147,10 +146,9 @@ func (m *SQLiteRepo) UpdateSolarArrayData(arrayId int, userId uint, inputs *mode
 		opts.Longitude,
 		arrayId,
 		userId,
-
 	)
 	if err != nil {
-		log.Println("Error updating solar array data: ", err )
+		log.Println("Error updating solar array data: ", err)
 		return err
 	}
 	log.Println("Succesfully updated solar array data!")
@@ -164,7 +162,7 @@ func (m *SQLiteRepo) RemoveSolarArrayData(userId uint, arrayId int) error {
 	_, err := m.DB.ExecContext(ctx, query, userId, arrayId)
 	if err != nil {
 		log.Println("Error removing solar array from database: ", err)
-		return  err
+		return err
 	}
 	return nil
 }

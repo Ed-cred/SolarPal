@@ -25,6 +25,8 @@ type OptionalInputs struct {
 	Longitude   string `json:"lon"`         // Longitude to use - required if adress not specified
 }
 
+
+
 type Outputs struct {
 	DcMonthly      []float64 `json:"dc_monthly"`
 	AcMonthly      []float64 `json:"ac_monthly"`
@@ -37,6 +39,13 @@ type Outputs struct {
 type PowerEstimate struct {
 	Inputs  RequiredInputs `json:"inputs"`
 	Outputs Outputs        `json:"outputs"`
+}
+
+type ArrayData struct {
+	ID   int
+	Adress    string
+	Latitude  string
+	Longitude string
 }
 
 type User struct {
