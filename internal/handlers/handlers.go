@@ -17,6 +17,7 @@ import (
 	"github.com/Ed-cred/SolarPal/repository"
 	"github.com/Ed-cred/SolarPal/repository/database"
 	"github.com/gofiber/fiber/v2"
+	"golang.org/x/crypto/bcrypt"
 )
 
 const baseURL = "https://developer.nrel.gov/api/pvwatts/v8.json"
@@ -151,6 +152,11 @@ func (r *Repository) RegisterUser(c *fiber.Ctx) error {
 	if helpers.FindUser(validLogins, user) != 0 {
 		return c.Status(fiber.StatusConflict).SendString("This user is already registered.")
 	}
+	hashPass, err := bcrypt.GenerateFromPassword([]byte(user.Password), 12)
+	if err != nil {
+		return err
+	}
+	user.Password = string(hashPass)
 	err = r.DB.CreateUser(user)
 	if err != nil {
 		return err
